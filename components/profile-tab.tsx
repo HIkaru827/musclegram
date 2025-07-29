@@ -60,24 +60,20 @@ export function ProfileTab({ currentUser }: { currentUser: UserAccount }) {
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
-  // プロフィールデータをローカルストレージから読み込み
+  // プロフィールデータをcurrentUser（Firestore）から読み込み
   useEffect(() => {
-    const savedProfile = localStorage.getItem(`userProfile_${currentUser.id}`)
-    if (savedProfile) {
-      const profile = JSON.parse(savedProfile)
-      setUserProfile(profile)
-      setTempProfile(profile)
-    } else {
-      // 保存されたプロフィールがない場合、currentUserの情報を使用
-      const defaultProfile = {
-        avatar: currentUser.avatar,
-        displayName: currentUser.displayName,
-        username: currentUser.username,
-        bio: currentUser.bio
-      }
-      setUserProfile(defaultProfile)
-      setTempProfile(defaultProfile)
+    // currentUserの情報を直接使用（Firestoreから最新情報が取得済み）
+    const profile = {
+      avatar: currentUser.avatar,
+      displayName: currentUser.displayName,
+      username: currentUser.username,
+      bio: currentUser.bio
     }
+    setUserProfile(profile)
+    setTempProfile(profile)
+    
+    // ローカルストレージも更新しておく（オフライン対応）
+    localStorage.setItem(`userProfile_${currentUser.id}`, JSON.stringify(profile))
 
     // 筋トレデータの読み込み（現在のユーザーの投稿のみ）
     const loadExercises = () => {
@@ -306,16 +302,31 @@ export function ProfileTab({ currentUser }: { currentUser: UserAccount }) {
     }
   }
 
-  const handleSaveProfile = () => {
-    setUserProfile(tempProfile)
-    localStorage.setItem(`userProfile_${currentUser.id}`, JSON.stringify(tempProfile))
-    
-    // カスタムイベントを発火して他のコンポーネントに通知
-    window.dispatchEvent(new CustomEvent('userProfileUpdated', {
-      detail: tempProfile
-    }))
-    
-    setIsSettingsOpen(false)
+  const handleSaveProfile = async () => {
+    try {
+      // Firestoreにプロフィール情報を保存
+      const { firestoreUsers } = await import('@/lib/firestore-utils')
+      await firestoreUsers.update(currentUser.id, {
+        displayName: tempProfile.displayName,
+        username: tempProfile.username,
+        bio: tempProfile.bio,
+        avatar: tempProfile.avatar
+      })
+
+      // ローカル状態も更新
+      setUserProfile(tempProfile)
+      localStorage.setItem(`userProfile_${currentUser.id}`, JSON.stringify(tempProfile))
+      
+      // カスタムイベントを発火して他のコンポーネントに通知
+      window.dispatchEvent(new CustomEvent('userProfileUpdated', {
+        detail: tempProfile
+      }))
+      
+      setIsSettingsOpen(false)
+    } catch (error) {
+      console.error('Failed to update profile:', error)
+      alert('プロフィールの更新に失敗しました')
+    }
   }
 
   const handleCancel = () => {

@@ -93,6 +93,29 @@ export function MobileApp() {
     return () => unsubscribe()
   }, [])
 
+  // プロフィール更新イベントの監視
+  useEffect(() => {
+    const handleProfileUpdate = (e: CustomEvent) => {
+      const updatedProfile = e.detail
+      if (currentUser) {
+        const updatedUser: UserAccount = {
+          ...currentUser,
+          displayName: updatedProfile.displayName,
+          username: updatedProfile.username,
+          bio: updatedProfile.bio,
+          avatar: updatedProfile.avatar
+        }
+        setCurrentUser(updatedUser)
+      }
+    }
+
+    window.addEventListener('userProfileUpdated', handleProfileUpdate as EventListener)
+    
+    return () => {
+      window.removeEventListener('userProfileUpdated', handleProfileUpdate as EventListener)
+    }
+  }, [currentUser])
+
   // ユーザー固有のデータを読み込む（Firebase移行により簡略化）
   const loadUserData = (userId: string) => {
     // Firebase移行により、運動データもFirestoreに移行済み
