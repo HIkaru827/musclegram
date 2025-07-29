@@ -467,6 +467,14 @@ export function ProfileTab({
                   />
                 </div>
 
+                {/* メールアドレス表示 */}
+                <div className="space-y-2 pt-2 border-t border-gray-700">
+                  <Label className="text-sm text-gray-500">登録メールアドレス</Label>
+                  <div className="text-sm text-gray-300 bg-gray-800/50 px-3 py-2 rounded border border-gray-700">
+                    {currentUser.email}
+                  </div>
+                </div>
+
                 {/* ボタン */}
                 <div className="flex gap-3 pt-4">
                   <Button
