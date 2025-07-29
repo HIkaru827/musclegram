@@ -148,27 +148,75 @@ export function HomeTab({
     }
   }, [currentUser.id])
 
-  // TODO: Firestoreからいいねデータとコメント数を読み込む関数（将来実装）
-  const loadLikesData = (posts: any[]) => {
+  // Firestoreからいいねデータとコメント数を読み込む関数
+  const loadLikesData = async (posts: any[]) => {
     const likesCountData: {[postId: string]: number} = {}
     const commentsCountData: {[postId: string]: number} = {}
     const userLikesSet = new Set<string>()
 
-    // 一時的に空データで初期化
-    posts.forEach((post) => {
-      likesCountData[post.id] = 0
-      commentsCountData[post.id] = 0
-    })
+    try {
+      const { firestoreLikes, firestoreComments } = await import('@/lib/firestore-utils')
+      
+      await Promise.all(posts.map(async (post) => {
+        // いいねデータを取得
+        const likes = await firestoreLikes.getByPost(post.id)
+        likesCountData[post.id] = likes.length
+        
+        // 現在のユーザーがいいねしているかチェック
+        const userLiked = likes.some(like => like.userId === currentUser.id)
+        if (userLiked) {
+          userLikesSet.add(post.id)
+        }
+        
+        // コメント数を取得
+        const comments = await firestoreComments.getByPost(post.id)
+        commentsCountData[post.id] = comments.length
+      }))
+    } catch (error) {
+      console.error('Failed to load likes data:', error)
+      // エラー時は空データで初期化
+      posts.forEach((post) => {
+        likesCountData[post.id] = 0
+        commentsCountData[post.id] = 0
+      })
+    }
 
     setLikesCount(likesCountData)
     setUserLikes(userLikesSet)
     setCommentsCount(commentsCountData)
   }
 
-  // TODO: Firestoreいいねボタンのハンドラー（将来実装）
-  const handleLike = (postId: string) => {
-    // 一時的に無効化
-    console.log('Like feature temporarily disabled - moving to Firestore')
+  // いいねボタンのハンドラー
+  const handleLike = async (postId: string) => {
+    try {
+      const { firestoreLikes } = await import('@/lib/firestore-utils')
+      const isCurrentlyLiked = userLikes.has(postId)
+      
+      if (isCurrentlyLiked) {
+        // いいねを取り消し
+        await firestoreLikes.remove(postId, currentUser.id)
+        setUserLikes(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(postId)
+          return newSet
+        })
+        setLikesCount(prev => ({
+          ...prev,
+          [postId]: Math.max(0, (prev[postId] || 0) - 1)
+        }))
+      } else {
+        // いいねを追加
+        await firestoreLikes.add(postId, currentUser.id)
+        setUserLikes(prev => new Set([...prev, postId]))
+        setLikesCount(prev => ({
+          ...prev,
+          [postId]: (prev[postId] || 0) + 1
+        }))
+      }
+    } catch (error) {
+      console.error('Failed to update like status:', error)
+      alert('いいねの更新に失敗しました')
+    }
   }
 
   // コメントボタンのハンドラー

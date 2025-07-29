@@ -56,36 +56,41 @@ export function CommentsModal({ isOpen, onClose, postId, currentUser, onUserClic
     }
   }, [isOpen, postId])
 
-  const loadComments = () => {
+  const loadComments = async () => {
     try {
-      const savedComments = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]')
+      const { firestoreComments, firestoreUsers } = await import('@/lib/firestore-utils')
+      
+      // Firestoreからコメントを取得
+      const firestoreCommentsList = await firestoreComments.getByPost(postId)
       
       // ユーザー情報を付加
-      const allUsers = JSON.parse(localStorage.getItem('musclegram_users') || '[]')
-      const commentsWithUsers = savedComments.map((comment: any) => {
-        const user = allUsers.find((u: UserAccount) => u.id === comment.userId)
-        return {
-          ...comment,
-          user: user ? {
-            id: user.id,
-            displayName: user.displayName,
-            username: user.username,
-            avatar: user.avatar
-          } : {
-            id: comment.userId,
-            displayName: 'Unknown User',
-            username: 'unknown',
-            avatar: ''
+      const commentsWithUsers = await Promise.all(
+        firestoreCommentsList.map(async (comment) => {
+          const user = await firestoreUsers.get(comment.userId)
+          return {
+            id: comment.id,
+            postId: comment.postId,
+            userId: comment.userId,
+            content: comment.content,
+            timestamp: comment.createdAt,
+            user: user ? {
+              id: user.id,
+              displayName: user.displayName,
+              username: user.username,
+              avatar: user.avatar
+            } : {
+              id: comment.userId,
+              displayName: 'Unknown User',
+              username: 'unknown',
+              avatar: '/placeholder.svg?height=80&width=80'
+            },
+            likes: [], // 後で実装
+            parentId: comment.parentId
           }
-        }
-      })
-      
-      // 時系列順でソート（古い順）
-      const sortedComments = commentsWithUsers.sort((a: Comment, b: Comment) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        })
       )
       
-      setComments(sortedComments)
+      setComments(commentsWithUsers)
     } catch (error) {
       console.error('Failed to load comments:', error)
       setComments([])
@@ -97,13 +102,17 @@ export function CommentsModal({ isOpen, onClose, postId, currentUser, onUserClic
 
     setIsSubmitting(true)
     try {
-      const commentId = `${currentUser.id}_${postId}_${Date.now()}`
+      const { firestoreComments } = await import('@/lib/firestore-utils')
+      
+      // Firestoreにコメントを保存
+      const savedComment = await firestoreComments.add(postId, currentUser.id, newComment.trim())
+      
       const newCommentObj: Comment = {
-        id: commentId,
-        postId,
-        userId: currentUser.id,
-        content: newComment.trim(),
-        timestamp: new Date().toLocaleString('ja-JP'),
+        id: savedComment.id,
+        postId: savedComment.postId,
+        userId: savedComment.userId,
+        content: savedComment.content,
+        timestamp: savedComment.createdAt,
         user: {
           id: currentUser.id,
           displayName: currentUser.displayName,
@@ -115,18 +124,6 @@ export function CommentsModal({ isOpen, onClose, postId, currentUser, onUserClic
 
       const updatedComments = [...comments, newCommentObj]
       setComments(updatedComments)
-      
-      // ローカルストレージに保存
-      const commentsToSave = updatedComments.map(comment => ({
-        id: comment.id,
-        postId: comment.postId,
-        userId: comment.userId,
-        content: comment.content,
-        timestamp: comment.timestamp,
-        likes: comment.likes,
-        parentId: comment.parentId
-      }))
-      localStorage.setItem(`comments_${postId}`, JSON.stringify(commentsToSave))
       
       // コメント数を更新するためのイベントを発火
       window.dispatchEvent(new CustomEvent('commentsUpdated', {

@@ -248,3 +248,43 @@ export const firestoreFollows = {
     return querySnapshot.docs.map(doc => doc.data().followingId)
   }
 }
+
+// コメント関連操作
+export const firestoreComments = {
+  // コメント追加
+  async add(postId: string, userId: string, content: string, parentId?: string) {
+    const collectionRef = collection(db, COLLECTIONS.COMMENTS)
+    const comment: Omit<FirestoreComment, 'id'> = {
+      postId,
+      userId,
+      content,
+      parentId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+    
+    const docRef = await addDoc(collectionRef, comment)
+    return { ...comment, id: docRef.id } as FirestoreComment
+  },
+
+  // 投稿のコメント取得
+  async getByPost(postId: string): Promise<FirestoreComment[]> {
+    const q = query(
+      collection(db, COLLECTIONS.COMMENTS),
+      where('postId', '==', postId),
+      orderBy('createdAt', 'asc')
+    )
+    
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as FirestoreComment[]
+  },
+
+  // コメント削除
+  async delete(commentId: string) {
+    const docRef = doc(db, COLLECTIONS.COMMENTS, commentId)
+    await deleteDoc(docRef)
+  }
+}

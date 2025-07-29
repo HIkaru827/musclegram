@@ -125,24 +125,37 @@ export function ProfileTab({ currentUser }: { currentUser: UserAccount }) {
   }, [currentUser.id]) // Add currentUser.id back to dependency array
 
   // いいねデータとコメント数を読み込む関数
-  const loadLikesData = (posts: any[]) => {
+  const loadLikesData = async (posts: any[]) => {
     const likesCountData: {[postId: string]: number} = {}
     const commentsCountData: {[postId: string]: number} = {}
     const userLikesSet = new Set<string>()
 
-    posts.forEach((post) => {
-      // いいねデータ
-      const postLikes = JSON.parse(localStorage.getItem(`likes_${post.id}`) || '[]')
-      likesCountData[post.id] = postLikes.length
+    try {
+      const { firestoreLikes, firestoreComments } = await import('@/lib/firestore-utils')
       
-      if (postLikes.includes(currentUser.id)) {
-        userLikesSet.add(post.id)
-      }
-      
-      // コメント数
-      const postComments = JSON.parse(localStorage.getItem(`comments_${post.id}`) || '[]')
-      commentsCountData[post.id] = postComments.length
-    })
+      await Promise.all(posts.map(async (post) => {
+        // いいねデータを取得
+        const likes = await firestoreLikes.getByPost(post.id)
+        likesCountData[post.id] = likes.length
+        
+        // 現在のユーザーがいいねしているかチェック
+        const userLiked = likes.some(like => like.userId === currentUser.id)
+        if (userLiked) {
+          userLikesSet.add(post.id)
+        }
+        
+        // コメント数を取得
+        const comments = await firestoreComments.getByPost(post.id)
+        commentsCountData[post.id] = comments.length
+      }))
+    } catch (error) {
+      console.error('Failed to load likes data:', error)
+      // エラー時は空データで初期化
+      posts.forEach((post) => {
+        likesCountData[post.id] = 0
+        commentsCountData[post.id] = 0
+      })
+    }
 
     setLikesCount(likesCountData)
     setUserLikes(userLikesSet)
@@ -150,34 +163,35 @@ export function ProfileTab({ currentUser }: { currentUser: UserAccount }) {
   }
 
   // いいねボタンのハンドラー
-  const handleLike = (postId: string) => {
+  const handleLike = async (postId: string) => {
     try {
-      const currentLikes = JSON.parse(localStorage.getItem(`likes_${postId}`) || '[]')
-      const isLiked = currentLikes.includes(currentUser.id)
+      const { firestoreLikes } = await import('@/lib/firestore-utils')
+      const isCurrentlyLiked = userLikes.has(postId)
       
-      let updatedLikes: string[]
-      if (isLiked) {
+      if (isCurrentlyLiked) {
         // いいねを取り消し
-        updatedLikes = currentLikes.filter((userId: string) => userId !== currentUser.id)
+        await firestoreLikes.remove(postId, currentUser.id)
         setUserLikes(prev => {
           const newSet = new Set(prev)
           newSet.delete(postId)
           return newSet
         })
+        setLikesCount(prev => ({
+          ...prev,
+          [postId]: Math.max(0, (prev[postId] || 0) - 1)
+        }))
       } else {
         // いいねを追加
-        updatedLikes = [...currentLikes, currentUser.id]
+        await firestoreLikes.add(postId, currentUser.id)
         setUserLikes(prev => new Set([...prev, postId]))
+        setLikesCount(prev => ({
+          ...prev,
+          [postId]: (prev[postId] || 0) + 1
+        }))
       }
-      
-      localStorage.setItem(`likes_${postId}`, JSON.stringify(updatedLikes))
-      setLikesCount(prev => ({
-        ...prev,
-        [postId]: updatedLikes.length
-      }))
-      
     } catch (error) {
       console.error('Failed to update like status:', error)
+      alert('いいねの更新に失敗しました')
     }
   }
 
