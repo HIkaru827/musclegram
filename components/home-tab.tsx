@@ -132,6 +132,9 @@ export function HomeTab({
         displayName: profile.displayName,
         username: profile.username,
       })
+      
+      // プロフィール変更時に投稿も再読み込み（最新のユーザー情報を反映）
+      loadGlobalPosts()
     }
 
     window.addEventListener('globalPostsUpdated', handleGlobalPostsUpdate)

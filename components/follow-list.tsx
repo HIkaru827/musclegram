@@ -32,63 +32,61 @@ export function FollowList({ isOpen, onClose, currentUser, type, onUserClick }: 
   // ユーザーリストとフォロー関係を読み込み
   useEffect(() => {
     if (isOpen) {
-      setIsLoading(true)
-      try {
-        // 全ユーザーを取得
-        const allUsers = JSON.parse(localStorage.getItem('musclegram_users') || '[]')
-        
-        // フォロー関係を読み込み
-        const userIds = type === 'followers' 
-          ? JSON.parse(localStorage.getItem(`musclegram_followers_${currentUser.id}`) || '[]')
-          : JSON.parse(localStorage.getItem(`musclegram_following_${currentUser.id}`) || '[]')
-        
-        // ユーザーIDからユーザー情報を取得
-        const targetUsers = allUsers.filter((user: UserAccount) => 
-          userIds.includes(user.id)
-        )
-        
-        setUsers(targetUsers)
-        
-        // 現在のフォロー状況を読み込み
-        const currentFollowing = JSON.parse(localStorage.getItem(`musclegram_following_${currentUser.id}`) || '[]')
-        setFollowing(new Set(currentFollowing))
-        
-      } catch (error) {
-        console.error('Failed to load follow list:', error)
-        setUsers([])
+      const loadFollowList = async () => {
+        setIsLoading(true)
+        try {
+          const { firestoreUsers, firestoreFollows } = await import('@/lib/firestore-utils')
+          
+          // フォロー関係のIDを取得
+          const userIds = type === 'followers' 
+            ? await firestoreFollows.getFollowers(currentUser.id)
+            : await firestoreFollows.getFollowing(currentUser.id)
+          
+          // ユーザーIDからユーザー情報を取得
+          const targetUsers = await Promise.all(
+            userIds.map(async (userId) => {
+              const user = await firestoreUsers.get(userId)
+              return user
+            })
+          )
+          
+          // nullを除外
+          const validUsers = targetUsers.filter((user): user is UserAccount => user !== null)
+          setUsers(validUsers)
+          
+          // 現在のフォロー状況を読み込み
+          const currentFollowing = await firestoreFollows.getFollowing(currentUser.id)
+          setFollowing(new Set(currentFollowing))
+          
+        } catch (error) {
+          console.error('Failed to load follow list:', error)
+          setUsers([])
+        }
+        setIsLoading(false)
       }
-      setIsLoading(false)
+
+      loadFollowList()
     }
   }, [isOpen, type, currentUser.id])
 
-  const handleFollow = (user: UserAccount) => {
+  const handleFollow = async (user: UserAccount) => {
     try {
+      const { firestoreFollows } = await import('@/lib/firestore-utils')
       const isCurrentlyFollowing = following.has(user.id)
       const newFollowing = new Set(following)
       
       if (isCurrentlyFollowing) {
         // アンフォロー
+        await firestoreFollows.remove(currentUser.id, user.id)
         newFollowing.delete(user.id)
-        
-        // フォロワーからも削除
-        const userFollowers = JSON.parse(localStorage.getItem(`musclegram_followers_${user.id}`) || '[]')
-        const updatedFollowers = userFollowers.filter((id: string) => id !== currentUser.id)
-        localStorage.setItem(`musclegram_followers_${user.id}`, JSON.stringify(updatedFollowers))
       } else {
         // フォロー
+        await firestoreFollows.add(currentUser.id, user.id)
         newFollowing.add(user.id)
-        
-        // フォロワーに追加
-        const userFollowers = JSON.parse(localStorage.getItem(`musclegram_followers_${user.id}`) || '[]')
-        if (!userFollowers.includes(currentUser.id)) {
-          userFollowers.push(currentUser.id)
-        }
-        localStorage.setItem(`musclegram_followers_${user.id}`, JSON.stringify(userFollowers))
       }
       
-      // フォロー関係を更新
+      // ローカル状態を更新
       setFollowing(newFollowing)
-      localStorage.setItem(`musclegram_following_${currentUser.id}`, JSON.stringify(Array.from(newFollowing)))
       
       // フォロー関係更新のイベントを発火
       window.dispatchEvent(new CustomEvent('followingUpdated', {
@@ -97,6 +95,7 @@ export function FollowList({ isOpen, onClose, currentUser, type, onUserClick }: 
       
     } catch (error) {
       console.error('Failed to update follow status:', error)
+      alert('フォロー状態の更新に失敗しました')
     }
   }
 

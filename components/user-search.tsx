@@ -34,21 +34,28 @@ export function UserSearch({ isOpen, onClose, currentUser, onUserClick }: UserSe
   // 全ユーザーとフォロー関係を取得
   useEffect(() => {
     if (isOpen) {
-      try {
-        const users = JSON.parse(localStorage.getItem('musclegram_users') || '[]')
-        // 現在のユーザーを除外
-        const otherUsers = users.filter((user: UserAccount) => user.id !== currentUser.id)
-        setAllUsers(otherUsers)
-        setSearchResults(otherUsers) // 初期表示は全ユーザー
+      const loadUsers = async () => {
+        try {
+          // Firestoreから全ユーザーを取得
+          const { firestoreUsers, firestoreFollows } = await import('@/lib/firestore-utils')
+          const users = await firestoreUsers.getAll()
+          
+          // 現在のユーザーを除外
+          const otherUsers = users.filter((user: UserAccount) => user.id !== currentUser.id)
+          setAllUsers(otherUsers)
+          setSearchResults(otherUsers) // 初期表示は全ユーザー
 
-        // フォロー関係を読み込み
-        const followData = JSON.parse(localStorage.getItem(`musclegram_following_${currentUser.id}`) || '[]')
-        setFollowing(new Set(followData))
-      } catch (error) {
-        console.error('Failed to load users:', error)
-        setAllUsers([])
-        setSearchResults([])
+          // フォロー関係をFirestoreから読み込み
+          const followingIds = await firestoreFollows.getFollowing(currentUser.id)
+          setFollowing(new Set(followingIds))
+        } catch (error) {
+          console.error('Failed to load users:', error)
+          setAllUsers([])
+          setSearchResults([])
+        }
       }
+
+      loadUsers()
     }
   }, [isOpen, currentUser.id])
 
@@ -76,34 +83,24 @@ export function UserSearch({ isOpen, onClose, currentUser, onUserClick }: UserSe
     onClose()
   }
 
-  const handleFollow = (user: UserAccount) => {
+  const handleFollow = async (user: UserAccount) => {
     try {
+      const { firestoreFollows } = await import('@/lib/firestore-utils')
       const isCurrentlyFollowing = following.has(user.id)
       const newFollowing = new Set(following)
       
       if (isCurrentlyFollowing) {
         // アンフォロー
+        await firestoreFollows.remove(currentUser.id, user.id)
         newFollowing.delete(user.id)
-        
-        // フォロワーからも削除
-        const userFollowers = JSON.parse(localStorage.getItem(`musclegram_followers_${user.id}`) || '[]')
-        const updatedFollowers = userFollowers.filter((id: string) => id !== currentUser.id)
-        localStorage.setItem(`musclegram_followers_${user.id}`, JSON.stringify(updatedFollowers))
       } else {
         // フォロー
+        await firestoreFollows.add(currentUser.id, user.id)
         newFollowing.add(user.id)
-        
-        // フォロワーに追加
-        const userFollowers = JSON.parse(localStorage.getItem(`musclegram_followers_${user.id}`) || '[]')
-        if (!userFollowers.includes(currentUser.id)) {
-          userFollowers.push(currentUser.id)
-        }
-        localStorage.setItem(`musclegram_followers_${user.id}`, JSON.stringify(userFollowers))
       }
       
-      // フォロー関係を更新
+      // ローカル状態を更新
       setFollowing(newFollowing)
-      localStorage.setItem(`musclegram_following_${currentUser.id}`, JSON.stringify(Array.from(newFollowing)))
       
       // フォロー関係更新のイベントを発火
       window.dispatchEvent(new CustomEvent('followingUpdated', {
@@ -112,6 +109,7 @@ export function UserSearch({ isOpen, onClose, currentUser, onUserClick }: UserSe
       
     } catch (error) {
       console.error('Failed to update follow status:', error)
+      alert('フォロー状態の更新に失敗しました')
     }
   }
 

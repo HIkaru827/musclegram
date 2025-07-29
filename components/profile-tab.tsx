@@ -90,10 +90,11 @@ export function ProfileTab({ currentUser }: { currentUser: UserAccount }) {
     loadExercises()
 
     // フォロー関係の読み込み
-    const loadFollowCounts = () => {
+    const loadFollowCounts = async () => {
       try {
-        const followers = JSON.parse(localStorage.getItem(`musclegram_followers_${currentUser.id}`) || '[]')
-        const following = JSON.parse(localStorage.getItem(`musclegram_following_${currentUser.id}`) || '[]')
+        const { firestoreFollows } = await import('@/lib/firestore-utils')
+        const followers = await firestoreFollows.getFollowers(currentUser.id)
+        const following = await firestoreFollows.getFollowing(currentUser.id)
         setFollowersCount(followers.length)
         setFollowingCount(following.length)
       } catch (error) {
