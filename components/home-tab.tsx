@@ -22,9 +22,19 @@ interface UserAccount {
 }
 
 export function HomeTab({ 
-  currentUser
+  currentUser,
+  globalLikesCount,
+  globalUserLikes,
+  globalCommentsCount,
+  onLikeUpdate,
+  onCommentUpdate
 }: { 
   currentUser: UserAccount
+  globalLikesCount: {[postId: string]: number}
+  globalUserLikes: Set<string>
+  globalCommentsCount: {[postId: string]: number}
+  onLikeUpdate: (postId: string, isLiked: boolean, likesCount: number) => void
+  onCommentUpdate: (postId: string, count: number) => void
 }) {
   const [activeTab, setActiveTab] = useState("all")
   const [globalPosts, setGlobalPosts] = useState<Post[]>([])
@@ -36,11 +46,8 @@ export function HomeTab({
   })
   const [isUserProfileOpen, setIsUserProfileOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null)
-  const [likesCount, setLikesCount] = useState<{[postId: string]: number}>({})
-  const [userLikes, setUserLikes] = useState<Set<string>>(new Set())
   const [isLikesListOpen, setIsLikesListOpen] = useState(false)
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
-  const [commentsCount, setCommentsCount] = useState<{[postId: string]: number}>({})
   const [isCommentsModalOpen, setIsCommentsModalOpen] = useState(false)
   const [selectedPostForComments, setSelectedPostForComments] = useState<string | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null)
@@ -81,7 +88,7 @@ export function HomeTab({
         )
         
         setGlobalPosts(postsWithUsers)
-        loadLikesData(postsWithUsers)
+        await loadLikesData(postsWithUsers)
         loadFollowingPosts(postsWithUsers)
         
       } catch (error) {
@@ -150,68 +157,51 @@ export function HomeTab({
 
   // Firestoreからいいねデータとコメント数を読み込む関数
   const loadLikesData = async (posts: any[]) => {
-    const likesCountData: {[postId: string]: number} = {}
-    const commentsCountData: {[postId: string]: number} = {}
-    const userLikesSet = new Set<string>()
-
     try {
       const { firestoreLikes, firestoreComments } = await import('@/lib/firestore-utils')
       
       await Promise.all(posts.map(async (post) => {
+        // グローバル状態に既にデータがある場合はスキップ
+        if (globalLikesCount[post.id] !== undefined && globalCommentsCount[post.id] !== undefined) {
+          return
+        }
+
         // いいねデータを取得
         const likes = await firestoreLikes.getByPost(post.id)
-        likesCountData[post.id] = likes.length
+        const likesCount = likes.length
         
         // 現在のユーザーがいいねしているかチェック
         const userLiked = likes.some(like => like.userId === currentUser.id)
-        if (userLiked) {
-          userLikesSet.add(post.id)
-        }
         
         // コメント数を取得
         const comments = await firestoreComments.getByPost(post.id)
-        commentsCountData[post.id] = comments.length
+        const commentsCount = comments.length
+
+        // グローバル状態を更新
+        onLikeUpdate(post.id, userLiked, likesCount)
+        onCommentUpdate(post.id, commentsCount)
       }))
     } catch (error) {
       console.error('Failed to load likes data:', error)
-      // エラー時は空データで初期化
-      posts.forEach((post) => {
-        likesCountData[post.id] = 0
-        commentsCountData[post.id] = 0
-      })
     }
-
-    setLikesCount(likesCountData)
-    setUserLikes(userLikesSet)
-    setCommentsCount(commentsCountData)
   }
 
   // いいねボタンのハンドラー
   const handleLike = async (postId: string) => {
     try {
       const { firestoreLikes } = await import('@/lib/firestore-utils')
-      const isCurrentlyLiked = userLikes.has(postId)
+      const isCurrentlyLiked = globalUserLikes.has(postId)
       
       if (isCurrentlyLiked) {
         // いいねを取り消し
         await firestoreLikes.remove(postId, currentUser.id)
-        setUserLikes(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(postId)
-          return newSet
-        })
-        setLikesCount(prev => ({
-          ...prev,
-          [postId]: Math.max(0, (prev[postId] || 0) - 1)
-        }))
+        const newCount = Math.max(0, (globalLikesCount[postId] || 0) - 1)
+        onLikeUpdate(postId, false, newCount)
       } else {
         // いいねを追加
         await firestoreLikes.add(postId, currentUser.id)
-        setUserLikes(prev => new Set([...prev, postId]))
-        setLikesCount(prev => ({
-          ...prev,
-          [postId]: (prev[postId] || 0) + 1
-        }))
+        const newCount = (globalLikesCount[postId] || 0) + 1
+        onLikeUpdate(postId, true, newCount)
       }
     } catch (error) {
       console.error('Failed to update like status:', error)
@@ -247,10 +237,7 @@ export function HomeTab({
   useEffect(() => {
     const handleCommentsUpdate = (e: CustomEvent) => {
       const { postId, count } = e.detail
-      setCommentsCount(prev => ({
-        ...prev,
-        [postId]: count
-      }))
+      onCommentUpdate(postId, count)
     }
 
     window.addEventListener('commentsUpdated', handleCommentsUpdate as EventListener)
@@ -258,7 +245,7 @@ export function HomeTab({
     return () => {
       window.removeEventListener('commentsUpdated', handleCommentsUpdate as EventListener)
     }
-  }, [])
+  }, [onCommentUpdate])
 
   // ユーザーアイコンクリック時のハンドラー
   const handleUserIconClick = async (postUserId: string, username: string) => {
@@ -372,22 +359,22 @@ export function HomeTab({
                         <button 
                           onClick={() => handleLike(post.id)}
                           className={`flex items-center gap-1 transition-colors ${
-                            userLikes.has(post.id) 
+                            globalUserLikes.has(post.id) 
                               ? 'text-red-500' 
                               : 'text-gray-500 hover:text-red-500'
                           }`}
                         >
                           <Heart className={`h-4 w-4 ${
-                            userLikes.has(post.id) ? 'fill-current' : ''
+                            globalUserLikes.has(post.id) ? 'fill-current' : ''
                           }`} />
-                          <span className="text-xs">{likesCount[post.id] || 0}</span>
+                          <span className="text-xs">{globalLikesCount[post.id] || 0}</span>
                         </button>
                         <button 
                           onClick={() => handleCommentClick(post.id)}
                           className="flex items-center gap-1 text-gray-500 hover:text-blue-500 transition-colors"
                         >
                           <MessageCircle className="h-4 w-4" />
-                          <span className="text-xs">{commentsCount[post.id] || 0}</span>
+                          <span className="text-xs">{globalCommentsCount[post.id] || 0}</span>
                         </button>
                         <button className="flex items-center gap-1 text-gray-500 hover:text-green-500 transition-colors">
                           <Share2 className="h-4 w-4" />
@@ -485,22 +472,22 @@ export function HomeTab({
                         <button 
                           onClick={() => handleLike(post.id)}
                           className={`flex items-center gap-1 transition-colors ${
-                            userLikes.has(post.id) 
+                            globalUserLikes.has(post.id) 
                               ? 'text-red-500' 
                               : 'text-gray-500 hover:text-red-500'
                           }`}
                         >
                           <Heart className={`h-4 w-4 ${
-                            userLikes.has(post.id) ? 'fill-current' : ''
+                            globalUserLikes.has(post.id) ? 'fill-current' : ''
                           }`} />
-                          <span className="text-xs">{likesCount[post.id] || 0}</span>
+                          <span className="text-xs">{globalLikesCount[post.id] || 0}</span>
                         </button>
                         <button 
                           onClick={() => handleCommentClick(post.id)}
                           className="flex items-center gap-1 text-gray-500 hover:text-blue-500 transition-colors"
                         >
                           <MessageCircle className="h-4 w-4" />
-                          <span className="text-xs">{commentsCount[post.id] || 0}</span>
+                          <span className="text-xs">{globalCommentsCount[post.id] || 0}</span>
                         </button>
                         <button className="flex items-center gap-1 text-gray-500 hover:text-green-500 transition-colors">
                           <Share2 className="h-4 w-4" />

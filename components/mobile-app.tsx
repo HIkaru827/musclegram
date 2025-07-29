@@ -31,6 +31,11 @@ export function MobileApp() {
   const [isAuthChecking, setIsAuthChecking] = useState(true) // 認証チェック中
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [viewingUser, setViewingUser] = useState<UserAccount | null>(null)
+  
+  // グローバルないいね・コメント状態
+  const [globalLikesCount, setGlobalLikesCount] = useState<{[postId: string]: number}>({})
+  const [globalUserLikes, setGlobalUserLikes] = useState<Set<string>>(new Set())
+  const [globalCommentsCount, setGlobalCommentsCount] = useState<{[postId: string]: number}>({})
 
   // Firebase認証状態の監視
   useEffect(() => {
@@ -115,6 +120,31 @@ export function MobileApp() {
       window.removeEventListener('userProfileUpdated', handleProfileUpdate as EventListener)
     }
   }, [currentUser])
+
+  // グローバルないいね状態更新関数
+  const updateGlobalLikeState = (postId: string, isLiked: boolean, likesCount: number) => {
+    setGlobalUserLikes(prev => {
+      const newSet = new Set(prev)
+      if (isLiked) {
+        newSet.add(postId)
+      } else {
+        newSet.delete(postId)
+      }
+      return newSet
+    })
+    setGlobalLikesCount(prev => ({
+      ...prev,
+      [postId]: likesCount
+    }))
+  }
+
+  // グローバルなコメント数更新関数
+  const updateGlobalCommentsCount = (postId: string, count: number) => {
+    setGlobalCommentsCount(prev => ({
+      ...prev,
+      [postId]: count
+    }))
+  }
 
   // ユーザー固有のデータを読み込む（Firebase移行により簡略化）
   const loadUserData = (userId: string) => {
@@ -219,13 +249,27 @@ export function MobileApp() {
           {/* Content */}
           <div className="flex-1 min-h-0 overflow-hidden">
             <TabsContent value="home" className="h-full m-0 p-0">
-              <HomeTab currentUser={currentUser} />
+              <HomeTab 
+                currentUser={currentUser} 
+                globalLikesCount={globalLikesCount}
+                globalUserLikes={globalUserLikes}
+                globalCommentsCount={globalCommentsCount}
+                onLikeUpdate={updateGlobalLikeState}
+                onCommentUpdate={updateGlobalCommentsCount}
+              />
             </TabsContent>
             <TabsContent value="workout" className="h-full m-0 p-0">
               <WorkoutTab currentUser={currentUser} />
             </TabsContent>
             <TabsContent value="profile" className="h-full m-0 p-0">
-              <ProfileTab currentUser={currentUser} />
+              <ProfileTab 
+                currentUser={currentUser}
+                globalLikesCount={globalLikesCount}
+                globalUserLikes={globalUserLikes}
+                globalCommentsCount={globalCommentsCount}
+                onLikeUpdate={updateGlobalLikeState}
+                onCommentUpdate={updateGlobalCommentsCount}
+              />
             </TabsContent>
           </div>
 
