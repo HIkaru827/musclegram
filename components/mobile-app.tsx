@@ -28,23 +28,69 @@ export function MobileApp() {
   const [activeTab, setActiveTab] = useState("home")
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null)
-  const [isAuthChecking, setIsAuthChecking] = useState(false) // 一時的に認証チェックを無効化
+  const [isAuthChecking, setIsAuthChecking] = useState(true) // 認証チェック中
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [viewingUser, setViewingUser] = useState<UserAccount | null>(null)
 
-  // Firebase認証チェック（一時的に無効化）
+  // Firebase認証状態の監視
   useEffect(() => {
-    console.log('Auth check temporarily disabled - proceeding to auth screen')
-    // 一時的に認証チェックを無効化してテスト用のダミーユーザーを設定
-    // setCurrentUser({
-    //   id: 'test-user',
-    //   email: 'test@example.com',
-    //   displayName: 'テストユーザー',
-    //   username: 'testuser',
-    //   bio: 'テスト用アカウント',
-    //   avatar: '/placeholder.svg?height=80&width=80',
-    //   createdAt: new Date().toISOString()
-    // })
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setIsAuthChecking(true)
+      
+      if (firebaseUser) {
+        try {
+          // Firestoreからユーザー情報を取得
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data()
+            const userAccount: UserAccount = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              displayName: userData.displayName || firebaseUser.displayName || '',
+              username: userData.username || '',
+              bio: userData.bio || '',
+              avatar: userData.avatar || firebaseUser.photoURL || '/placeholder.svg?height=80&width=80',
+              createdAt: userData.createdAt || new Date().toISOString()
+            }
+            setCurrentUser(userAccount)
+          } else {
+            // ユーザードキュメントが存在しない場合は新規作成
+            const newUserAccount: UserAccount = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              displayName: firebaseUser.displayName || 'ユーザー',
+              username: firebaseUser.email?.split('@')[0] || 'user',
+              bio: '',
+              avatar: firebaseUser.photoURL || '/placeholder.svg?height=80&width=80',
+              createdAt: new Date().toISOString()
+            }
+            
+            // Firestoreにユーザー情報を保存
+            await setDoc(doc(db, 'users', firebaseUser.uid), {
+              displayName: newUserAccount.displayName,
+              username: newUserAccount.username,
+              bio: newUserAccount.bio,
+              avatar: newUserAccount.avatar,
+              email: newUserAccount.email,
+              createdAt: newUserAccount.createdAt,
+              updatedAt: new Date().toISOString()
+            })
+            
+            setCurrentUser(newUserAccount)
+          }
+        } catch (error) {
+          console.error('Error loading user data:', error)
+          setCurrentUser(null)
+        }
+      } else {
+        setCurrentUser(null)
+      }
+      
+      setIsAuthChecking(false)
+    })
+
+    return () => unsubscribe()
   }, [])
 
   // ユーザー固有のデータを読み込む（Firebase移行により簡略化）
