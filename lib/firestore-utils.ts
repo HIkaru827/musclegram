@@ -48,7 +48,10 @@ export const firestoreUsers = {
     const docSnap = await getDoc(docRef)
     
     if (docSnap.exists()) {
-      return docSnap.data() as FirestoreUser
+      return {
+        id: docSnap.id,
+        ...docSnap.data()
+      } as FirestoreUser
     }
     return null
   },
@@ -215,6 +218,16 @@ export const firestoreLikes = {
 export const firestoreFollows = {
   // フォロー追加
   async add(followerId: string, followingId: string) {
+    // バリデーション: 必要なパラメータが存在することを確認
+    if (!followerId || !followingId) {
+      throw new Error(`Invalid follow parameters: followerId=${followerId}, followingId=${followingId}`)
+    }
+    
+    // 自分自身をフォローしようとした場合はエラー
+    if (followerId === followingId) {
+      throw new Error('Cannot follow yourself')
+    }
+
     const collectionRef = collection(db, COLLECTIONS.FOLLOWS)
     const follow: Omit<FirestoreFollow, 'id'> = {
       followerId,
@@ -228,6 +241,11 @@ export const firestoreFollows = {
 
   // フォロー削除
   async remove(followerId: string, followingId: string) {
+    // バリデーション: 必要なパラメータが存在することを確認
+    if (!followerId || !followingId) {
+      throw new Error(`Invalid unfollow parameters: followerId=${followerId}, followingId=${followingId}`)
+    }
+
     const q = query(
       collection(db, COLLECTIONS.FOLLOWS),
       where('followerId', '==', followerId),

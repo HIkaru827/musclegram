@@ -71,6 +71,18 @@ export function FollowList({ isOpen, onClose, currentUser, type, onUserClick }: 
 
   const handleFollow = async (user: UserAccount) => {
     try {
+      // バリデーション: 必要なIDが存在することを確認
+      if (!currentUser?.id || !user?.id) {
+        console.error('[FollowList] Missing required IDs:', { 
+          currentUser: currentUser, 
+          currentUserId: currentUser?.id, 
+          user: user, 
+          userId: user?.id 
+        })
+        alert('フォロー操作に必要な情報が不足しています')
+        return
+      }
+
       const { firestoreFollows } = await import('@/lib/firestore-utils')
       const isCurrentlyFollowing = following.has(user.id)
       const newFollowing = new Set(following)
