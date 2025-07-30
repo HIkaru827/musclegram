@@ -52,9 +52,8 @@ export function HomeTab({
   const [selectedPostForComments, setSelectedPostForComments] = useState<string | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null)
 
-  // Firestoreから投稿データを読み込んで表示
-  useEffect(() => {
-    const loadGlobalPosts = async () => {
+  // Firestoreから投稿データを読み込む関数
+  const loadGlobalPosts = async () => {
       try {
         console.log('Loading posts from Firestore...')
         // Firestoreから投稿を取得
@@ -110,6 +109,8 @@ export function HomeTab({
       }
     }
 
+  // Firestoreから投稿データを読み込んで表示
+  useEffect(() => {
     loadGlobalPosts()
 
     // プロフィールデータの読み込み（Firebaseから）
@@ -273,9 +274,18 @@ export function HomeTab({
     }
   }
 
+  // タブ変更時の処理（再読み込み機能付き）
+  const handleTabChange = (newTab: string) => {
+    if (newTab === "all" && activeTab === "all") {
+      // 既に「みんなの投稿」タブにいる場合は再読み込み
+      loadGlobalPosts()
+    }
+    setActiveTab(newTab)
+  }
+
   return (
     <div className="h-full flex flex-col">
-      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
+      <Tabs defaultValue="all" value={activeTab} onValueChange={handleTabChange} className="w-full h-full flex flex-col">
         <div className="p-2 md:p-4 border-b border-red-900/50">
           <TabsList className="w-full bg-transparent h-10 md:h-12 lg:h-14">
             <TabsTrigger value="all" className="flex-1 bg-white text-red-500 border border-red-500 data-[state=active]:bg-red-500 data-[state=active]:text-white text-xs">

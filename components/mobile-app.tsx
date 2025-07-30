@@ -206,28 +206,27 @@ export function MobileApp() {
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-white text-black">
-      {/* Header - 固定 */}
-      <div className="flex-shrink-0 flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4">
-        <div>
-          <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsSearchOpen(true)}
-            className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-2"
-          >
-            <Search className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="text-xs sm:text-sm">ユーザー検索</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* メインコンテンツ - 制限された高さ */}
+      {/* メインコンテンツ - フル高さでスクロール可能 */}
       {viewingUser ? (
         // 他のユーザーのプロフィール表示
-        <div className="flex-1 overflow-hidden" style={{maxHeight: 'calc(100vh - 120px)'}}>
+        <div className="flex-1 overflow-y-auto" style={{maxHeight: 'calc(100vh - 64px)'}}>
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4">
+            <div>
+              <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsSearchOpen(true)}
+                className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-2"
+              >
+                <Search className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="text-xs sm:text-sm">ユーザー検索</span>
+              </Button>
+            </div>
+          </div>
           <OtherProfileTab 
             targetUser={viewingUser}
             currentUser={currentUser}
@@ -236,10 +235,27 @@ export function MobileApp() {
         </div>
       ) : (
         // 通常のタブ表示
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1" style={{maxHeight: 'calc(100vh - 120px)'}}>
-          {/* Content - 制限された高さでスクロール可能 */}
-          <div className="flex-1 overflow-hidden" style={{maxHeight: 'calc(100vh - 184px)'}}>
-            <TabsContent value="home" className="h-full m-0 p-0 overflow-y-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1">
+          {/* Content - フル高さでスクロール可能 */}
+          <div className="flex-1 overflow-y-auto" style={{maxHeight: 'calc(100vh - 64px)'}}>
+            <TabsContent value="home" className="m-0 p-0">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4">
+                <div>
+                  <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsSearchOpen(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-2"
+                  >
+                    <Search className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="text-xs sm:text-sm">ユーザー検索</span>
+                  </Button>
+                </div>
+              </div>
               <HomeTab 
                 currentUser={currentUser} 
                 globalLikesCount={globalLikesCount}
@@ -249,10 +265,44 @@ export function MobileApp() {
                 onCommentUpdate={updateGlobalCommentsCount}
               />
             </TabsContent>
-            <TabsContent value="workout" className="h-full m-0 p-0 overflow-y-auto">
+            <TabsContent value="workout" className="m-0 p-0">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4">
+                <div>
+                  <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsSearchOpen(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-2"
+                  >
+                    <Search className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="text-xs sm:text-sm">ユーザー検索</span>
+                  </Button>
+                </div>
+              </div>
               <WorkoutTab currentUser={currentUser} />
             </TabsContent>
-            <TabsContent value="profile" className="h-full m-0 p-0 overflow-y-auto">
+            <TabsContent value="profile" className="m-0 p-0">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4">
+                <div>
+                  <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsSearchOpen(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-2"
+                  >
+                    <Search className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="text-xs sm:text-sm">ユーザー検索</span>
+                  </Button>
+                </div>
+              </div>
               <ProfileTab 
                 currentUser={currentUser}
                 globalLikesCount={globalLikesCount}

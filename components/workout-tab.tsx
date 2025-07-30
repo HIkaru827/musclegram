@@ -37,6 +37,9 @@ export function WorkoutTab({
   const [deleteConfirmation, setDeleteConfirmation] = useState<{bodyPart: string, exerciseName: string} | null>(null)
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null)
   const [exerciseDeleteConfirmation, setExerciseDeleteConfirmation] = useState<number | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedDateExercises, setSelectedDateExercises] = useState<Exercise[]>([])
+  const [isDateDetailOpen, setIsDateDetailOpen] = useState(false)
 
   // Firestoreからエクササイズデータを読み込み
   useEffect(() => {
@@ -249,6 +252,21 @@ export function WorkoutTab({
   ]
 
   const dayNames = ['日', '月', '火', '水', '木', '金', '土']
+
+  // 日付クリック時の処理
+  const handleDateClick = (date: Date, hasWorkout: boolean) => {
+    if (!hasWorkout) return
+
+    const dateString = date.toDateString()
+    const dateExercises = exercises.filter(exercise => {
+      const exerciseDate = new Date(exercise.timestamp.replace(/\//g, '-'))
+      return exerciseDate.toDateString() === dateString
+    })
+
+    setSelectedDate(date.toLocaleDateString('ja-JP'))
+    setSelectedDateExercises(dateExercises)
+    setIsDateDetailOpen(true)
+  }
 
   const addCustomExercise = (bodyPart: string, exerciseName: string) => {
     const updatedCustomExercises = {
@@ -712,11 +730,13 @@ export function WorkoutTab({
                       return (
                         <div
                           key={index}
+                          onClick={() => handleDateClick(day.date, hasWorkout)}
                           className={`
                             h-10 flex items-center justify-center text-sm cursor-pointer relative
                             ${isCurrentMonth ? 'text-red-500' : 'text-gray-300'}
                             ${isToday ? 'bg-red-500 text-white rounded-full' : 'hover:bg-gray-100 rounded'}
                             ${hasWorkout && !isToday ? 'border-2 border-black rounded-full' : ''}
+                            ${hasWorkout ? 'cursor-pointer' : 'cursor-default'}
                           `}
                         >
                           {dayNumber}
@@ -747,7 +767,7 @@ export function WorkoutTab({
       <Dialog open={isExerciseModalOpen} onOpenChange={setIsExerciseModalOpen}>
         <DialogTrigger asChild>
           <Button
-            className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-900/50 z-10"
+            className="fixed bottom-24 right-4 h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-900/50 z-10"
             size="icon"
           >
             <Plus className="h-6 w-6" />
@@ -847,6 +867,86 @@ export function WorkoutTab({
           </div>
         </div>
       )}
+
+      {/* 日付詳細モーダル */}
+      <Dialog open={isDateDetailOpen} onOpenChange={setIsDateDetailOpen}>
+        <DialogContent className="bg-black border-red-900/50 text-white max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-red-400">{selectedDate}のトレーニング記録</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              この日に記録したトレーニングです
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedDateExercises.length > 0 ? (
+              selectedDateExercises.map((exercise) => (
+                <div key={exercise.id} className="border border-red-900/30 rounded-md p-3 bg-gray-900/50">
+                  <div className="flex gap-4">
+                    {/* 左側：情報エリア */}
+                    <div className="w-1/2">
+                      {/* 項目名、時間、セット数 */}
+                      <div className="mb-3">
+                        <h3 className="font-semibold text-sm text-red-400">{exercise.name}</h3>
+                        <p className="text-xs text-gray-400">{exercise.timestamp}</p>
+                        <p className="text-xs text-gray-500 mt-1">{exercise.sets.length}セット</p>
+                      </div>
+                      
+                      {/* メモ表示 */}
+                      {exercise.memo && (
+                        <div className="mb-3 p-2 bg-gray-800/50 rounded-md border border-red-900/30">
+                          <div className="flex items-center gap-1 mb-1">
+                            <FileText className="h-3 w-3 text-red-400" />
+                            <span className="text-xs text-red-400">メモ</span>
+                          </div>
+                          <p className="text-xs text-gray-300">{exercise.memo}</p>
+                        </div>
+                      )}
+
+                      {/* セット詳細 */}
+                      <div className="space-y-2">
+                        {exercise.sets.map((set, setIndex) => (
+                          <div key={setIndex} className="flex items-center gap-2">
+                            <div className="w-6 text-xs text-center text-red-400 font-semibold">{setIndex + 1}</div>
+                            <div className="w-20">
+                              <div className="bg-gray-700 rounded px-2 py-1 text-center text-xs text-white">
+                                {set.weight || '0'}kg
+                              </div>
+                            </div>
+                            <div className="text-xs text-gray-400">×</div>
+                            <div className="w-20">
+                              <div className="bg-gray-700 rounded px-2 py-1 text-center text-xs text-white">
+                                {set.reps || '0'}回
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* 右側：写真表示 */}
+                    {exercise.photo && (
+                      <div className="w-1/2 flex items-center justify-center p-1">
+                        <div className="w-full h-full max-w-full max-h-48">
+                          <img 
+                            src={exercise.photo} 
+                            alt="ワークアウト写真" 
+                            className="w-full h-full object-cover rounded-md border border-red-900/30"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                <Dumbbell className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+                <p className="text-sm">この日の記録はありません</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
