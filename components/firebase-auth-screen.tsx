@@ -258,7 +258,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
                 disabled={isLoading}
                 className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600"
               >
-                {isLoading ? "ログイン中..." : "Firebase ログイン"}
+                {isLoading ? "ログイン中..." : "ログイン"}
               </Button>
             </TabsContent>
 
@@ -363,7 +363,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
                 disabled={isLoading}
                 className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600"
               >
-                {isLoading ? "登録中..." : "Firebase アカウント作成"}
+                {isLoading ? "登録中..." : "アカウント作成"}
               </Button>
             </TabsContent>
           </Tabs>

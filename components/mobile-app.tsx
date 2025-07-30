@@ -210,9 +210,6 @@ export function MobileApp() {
       <div className="flex-shrink-0 flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4">
         <div>
           <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
-          <p className="text-xs text-red-300">
-            ☁️ Firebase
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button

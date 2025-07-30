@@ -747,7 +747,7 @@ export function WorkoutTab({
       <Dialog open={isExerciseModalOpen} onOpenChange={setIsExerciseModalOpen}>
         <DialogTrigger asChild>
           <Button
-            className="fixed bottom-4 right-4 h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-900/50 z-10"
+            className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-900/50 z-10"
             size="icon"
           >
             <Plus className="h-6 w-6" />
