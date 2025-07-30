@@ -227,10 +227,10 @@ export function MobileApp() {
         </div>
       </div>
 
-      {/* メインコンテンツ - スクロール可能エリア */}
+      {/* メインコンテンツ - 制限された高さ */}
       {viewingUser ? (
         // 他のユーザーのプロフィール表示
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden" style={{maxHeight: 'calc(100vh - 120px)'}}>
           <OtherProfileTab 
             targetUser={viewingUser}
             currentUser={currentUser}
@@ -239,10 +239,10 @@ export function MobileApp() {
         </div>
       ) : (
         // 通常のタブ表示
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
-          {/* Content - スクロール可能 */}
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <TabsContent value="home" className="h-full m-0 p-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1" style={{maxHeight: 'calc(100vh - 120px)'}}>
+          {/* Content - 制限された高さでスクロール可能 */}
+          <div className="flex-1 overflow-hidden" style={{maxHeight: 'calc(100vh - 184px)'}}>
+            <TabsContent value="home" className="h-full m-0 p-0 overflow-y-auto">
               <HomeTab 
                 currentUser={currentUser} 
                 globalLikesCount={globalLikesCount}
@@ -252,10 +252,10 @@ export function MobileApp() {
                 onCommentUpdate={updateGlobalCommentsCount}
               />
             </TabsContent>
-            <TabsContent value="workout" className="h-full m-0 p-0">
+            <TabsContent value="workout" className="h-full m-0 p-0 overflow-y-auto">
               <WorkoutTab currentUser={currentUser} />
             </TabsContent>
-            <TabsContent value="profile" className="h-full m-0 p-0">
+            <TabsContent value="profile" className="h-full m-0 p-0 overflow-y-auto">
               <ProfileTab 
                 currentUser={currentUser}
                 globalLikesCount={globalLikesCount}
