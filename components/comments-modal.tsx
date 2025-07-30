@@ -82,7 +82,7 @@ export function CommentsModal({ isOpen, onClose, postId, currentUser, onUserClic
               id: comment.userId,
               displayName: 'Unknown User',
               username: 'unknown',
-              avatar: '/placeholder.svg?height=80&width=80'
+              avatar: 'https://ui-avatars.com/api/?name=Unknown&background=dc2626&color=ffffff&size=80'
             },
             likes: [], // 後で実装
             parentId: comment.parentId

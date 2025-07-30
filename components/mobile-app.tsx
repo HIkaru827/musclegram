@@ -11,7 +11,7 @@ import { FirebaseAuthScreen } from "@/components/firebase-auth-screen"
 import { UserSearch } from "@/components/user-search"
 import { OtherProfileTab } from "@/components/other-profile-tab"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Home, Dumbbell, User, LogOut, Search } from "lucide-react"
+import { Home, Dumbbell, User, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface UserAccount {
@@ -55,7 +55,7 @@ export function MobileApp() {
               displayName: userData.displayName || firebaseUser.displayName || '',
               username: userData.username || '',
               bio: userData.bio || '',
-              avatar: userData.avatar || firebaseUser.photoURL || '/placeholder.svg?height=80&width=80',
+              avatar: userData.avatar || firebaseUser.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userData.displayName || firebaseUser.displayName || '新規ユーザー') + '&background=dc2626&color=ffffff&size=80',
               createdAt: userData.createdAt || new Date().toISOString()
             }
             setCurrentUser(userAccount)
@@ -67,7 +67,7 @@ export function MobileApp() {
               displayName: firebaseUser.displayName || 'ユーザー',
               username: firebaseUser.email?.split('@')[0] || 'user',
               bio: '',
-              avatar: firebaseUser.photoURL || '/placeholder.svg?height=80&width=80',
+              avatar: firebaseUser.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(firebaseUser.displayName || 'ユーザー') + '&background=dc2626&color=ffffff&size=80',
               createdAt: new Date().toISOString()
             }
             
@@ -216,21 +216,13 @@ export function MobileApp() {
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => setIsSearchOpen(true)}
-            className="text-red-300 hover:text-white hover:bg-red-800/50 flex items-center gap-1"
+            className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 flex items-center gap-2 px-3 py-2"
           >
             <Search className="h-4 w-4" />
-            <span className="hidden sm:block text-xs">検索</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="text-red-300 hover:text-white hover:bg-red-800/50"
-          >
-            <LogOut className="h-4 w-4" />
+            <span className="text-sm">ユーザー検索</span>
           </Button>
         </div>
       </div>
@@ -269,6 +261,7 @@ export function MobileApp() {
                 globalCommentsCount={globalCommentsCount}
                 onLikeUpdate={updateGlobalLikeState}
                 onCommentUpdate={updateGlobalCommentsCount}
+                onLogout={handleLogout}
               />
             </TabsContent>
           </div>

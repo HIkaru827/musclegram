@@ -60,6 +60,20 @@ export const firestoreUsers = {
       ...updateData,
       updatedAt: new Date().toISOString()
     })
+  },
+
+  // 全ユーザー取得
+  async getAll(limitCount: number = 50): Promise<FirestoreUser[]> {
+    const q = query(
+      collection(db, COLLECTIONS.USERS),
+      limit(limitCount)
+    )
+    
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as FirestoreUser[]
   }
 }
 
@@ -271,15 +285,17 @@ export const firestoreComments = {
   async getByPost(postId: string): Promise<FirestoreComment[]> {
     const q = query(
       collection(db, COLLECTIONS.COMMENTS),
-      where('postId', '==', postId),
-      orderBy('createdAt', 'asc')
+      where('postId', '==', postId)
     )
     
     const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map(doc => ({
+    const comments = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     })) as FirestoreComment[]
+    
+    // クライアント側でソート
+    return comments.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
   },
 
   // コメント削除

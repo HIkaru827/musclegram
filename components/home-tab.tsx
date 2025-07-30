@@ -71,7 +71,7 @@ export function HomeTab({
               userId: post.userId,
               user: {
                 name: user?.displayName || "Unknown User",
-                avatar: user?.avatar || "/placeholder.svg?height=80&width=80",
+                avatar: user?.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user?.displayName || 'Unknown') + '&background=dc2626&color=ffffff&size=80',
                 username: user?.username || "unknown",
               },
               content: post.content,

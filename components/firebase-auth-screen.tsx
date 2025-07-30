@@ -79,7 +79,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
         displayName: firebaseUser.displayName || "ユーザー",
         username: firebaseUser.displayName?.toLowerCase().replace(/\s+/g, '_') || `user_${Date.now()}`,
         bio: "",
-        avatar: firebaseUser.photoURL || "/placeholder.svg?height=80&width=80",
+        avatar: firebaseUser.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(firebaseUser.displayName || 'ユーザー') + '&background=dc2626&color=ffffff&size=80',
         createdAt: firebaseUser.metadata.creationTime || new Date().toISOString()
       }
 
@@ -149,7 +149,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
         displayName: registerData.displayName,
         username: registerData.username,
         bio: "",
-        avatar: "/placeholder.svg?height=80&width=80",
+        avatar: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName || 'ユーザー') + '&background=dc2626&color=ffffff&size=80',
         createdAt: new Date().toISOString()
       }
 

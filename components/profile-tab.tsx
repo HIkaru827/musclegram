@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Dumbbell, Settings, BarChart3, FlameIcon as Fire, TrendingUp, Calendar, FileText, Heart, MessageCircle, Share2, Trash2 } from "lucide-react"
+import { Dumbbell, Settings, BarChart3, FlameIcon as Fire, TrendingUp, Calendar, FileText, Heart, MessageCircle, Share2, Trash2, LogOut } from "lucide-react"
 import { FollowList } from "@/components/follow-list"
 import { UserProfile as UserProfileModal } from "@/components/user-profile"
 import { LikesList } from "@/components/likes-list"
@@ -40,7 +40,8 @@ export function ProfileTab({
   globalUserLikes,
   globalCommentsCount,
   onLikeUpdate,
-  onCommentUpdate
+  onCommentUpdate,
+  onLogout
 }: { 
   currentUser: UserAccount
   globalLikesCount?: {[postId: string]: number}
@@ -48,6 +49,7 @@ export function ProfileTab({
   globalCommentsCount?: {[postId: string]: number}
   onLikeUpdate?: (postId: string, isLiked: boolean, likesCount: number) => void
   onCommentUpdate?: (postId: string, count: number) => void
+  onLogout?: () => void
 }) {
   const [userProfile, setUserProfile] = useState<UserProfile>({
     avatar: currentUser.avatar,
@@ -70,6 +72,134 @@ export function ProfileTab({
   const [selectedPostForComments, setSelectedPostForComments] = useState<string | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  
+  // 分析データ用の状態
+  const [analyticsData, setAnalyticsData] = useState({
+    thisMonthDays: 0,
+    lastMonthComparison: 0,
+    maxBenchPress: 0,
+    yearTrainingDays: 0,
+    yearProgress: '0/365'
+  })
+
+  // 分析データを計算する関数
+  const calculateAnalytics = (exercises: any[]) => {
+    // データが空の場合は計算をスキップ
+    if (!exercises || exercises.length === 0) {
+      return {
+        thisMonthDays: 0,
+        lastMonthComparison: 0,
+        maxBenchPress: 0,
+        yearTrainingDays: 0,
+        yearProgress: '0/365'
+      }
+    }
+    
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
+
+    // 今月のトレーニング日数を計算
+    const thisMonthWorkouts = exercises.filter(exercise => {
+      if (!exercise.timestamp) return false
+      
+      // timestampの形式に応じて日付パース
+      let exerciseDate
+      if (exercise.timestamp.includes('/')) {
+        // "2025/7/29 14:30" 形式
+        exerciseDate = new Date(exercise.timestamp)
+      } else if (exercise.timestamp.includes('-')) {
+        // ISO format
+        exerciseDate = new Date(exercise.timestamp)
+      } else {
+        return false
+      }
+      
+      return exerciseDate.getMonth() === currentMonth && exerciseDate.getFullYear() === currentYear
+    })
+    
+    // 日付の重複を除去してユニークな日数を計算
+    const uniqueDates = new Set()
+    thisMonthWorkouts.forEach(w => {
+      if (w.timestamp) {
+        const dateStr = w.timestamp.split(' ')[0] // 日付部分のみ
+        uniqueDates.add(dateStr)
+      }
+    })
+    const thisMonthDays = uniqueDates.size
+
+    // 先月のトレーニング日数を計算
+    const lastMonthWorkouts = exercises.filter(exercise => {
+      if (!exercise.timestamp) return false
+      const exerciseDate = new Date(exercise.timestamp)
+      return exerciseDate.getMonth() === lastMonth && exerciseDate.getFullYear() === lastMonthYear
+    })
+    const lastMonthUniqueDates = new Set()
+    lastMonthWorkouts.forEach(w => {
+      if (w.timestamp) {
+        const dateStr = w.timestamp.split(' ')[0]
+        lastMonthUniqueDates.add(dateStr)
+      }
+    })
+    const lastMonthDays = lastMonthUniqueDates.size
+
+    // 先月比の計算（割合）
+    const lastMonthComparison = lastMonthDays === 0 ? 
+      (thisMonthDays > 0 ? 100 : 0) : 
+      Math.round(((thisMonthDays - lastMonthDays) / lastMonthDays) * 100)
+
+    // 最大ベンチプレス重量を取得
+    const benchPressExercises = exercises.filter(exercise => {
+      const name = exercise.name || ''
+      return name.toLowerCase().includes('ベンチプレス') || 
+             name.toLowerCase().includes('bench press') ||
+             name.toLowerCase().includes('ベンチ')
+    })
+    
+    let maxBenchPress = 0
+    benchPressExercises.forEach(exercise => {
+      if (exercise.sets && Array.isArray(exercise.sets)) {
+        exercise.sets.forEach((set: any) => {
+          const weight = parseFloat(set.weight || '0')
+          if (!isNaN(weight) && weight > maxBenchPress) {
+            maxBenchPress = weight
+          }
+        })
+      }
+    })
+
+    // 年間トレーニング日数を計算
+    const yearStart = new Date(currentYear, 0, 1)
+    const yearWorkouts = exercises.filter(exercise => {
+      if (!exercise.timestamp) return false
+      const exerciseDate = new Date(exercise.timestamp)
+      return exerciseDate >= yearStart && exerciseDate.getFullYear() === currentYear
+    })
+    
+    const yearUniqueDates = new Set()
+    yearWorkouts.forEach(w => {
+      if (w.timestamp) {
+        const dateStr = w.timestamp.split(' ')[0]
+        yearUniqueDates.add(dateStr)
+      }
+    })
+    const yearTrainingDays = yearUniqueDates.size
+
+    // 年間進捗の計算（1月1日からの日数）
+    const daysSinceNewYear = Math.floor((now.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    const yearProgress = `${yearTrainingDays}/${daysSinceNewYear}`
+
+
+    return {
+      thisMonthDays,
+      lastMonthComparison,
+      maxBenchPress,
+      yearTrainingDays,
+      yearProgress
+    }
+  }
 
   // プロフィールデータをcurrentUser（Firestore）から読み込み
   useEffect(() => {
@@ -96,6 +226,10 @@ export function ProfileTab({
         timestamp: post.timestamp
       }))
       setUserExercises(userExercises)
+      
+      // 分析データを計算
+      const analytics = calculateAnalytics(userExercises)
+      setAnalyticsData(analytics)
     }
 
     loadExercises()
@@ -255,6 +389,10 @@ export function ProfileTab({
           createdAt: post.createdAt // ソート用
         }))
         setUserExercises(userExercises)
+        
+        // 分析データを計算
+        const analytics = calculateAnalytics(userExercises)
+        setAnalyticsData(analytics)
         
         // いいねデータも読み込む
         if (onLikeUpdate && onCommentUpdate) {
@@ -475,6 +613,24 @@ export function ProfileTab({
                   </div>
                 </div>
 
+                {/* ログアウトボタン */}
+                <div className="pt-2 border-t border-gray-700">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-red-600 text-red-400 hover:bg-red-600 hover:text-white flex items-center gap-2"
+                    onClick={() => {
+                      if (onLogout) {
+                        onLogout()
+                        setIsSettingsOpen(false)
+                      }
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    ログアウト
+                  </Button>
+                </div>
+
                 {/* ボタン */}
                 <div className="flex gap-3 pt-4">
                   <Button
@@ -643,22 +799,26 @@ export function ProfileTab({
                       <div className="grid grid-cols-2 gap-2">
                         <div className="bg-white border border-red-900/30 rounded-md p-3 flex flex-col items-center">
                           <Fire className="h-6 w-6 text-red-500 mb-1" />
-                          <div className="text-lg font-bold">24</div>
+                          <div className="text-lg font-bold text-black">{analyticsData.thisMonthDays}</div>
                           <div className="text-xs text-gray-400">今月のトレーニング</div>
                         </div>
                         <div className="bg-white border border-red-900/30 rounded-md p-3 flex flex-col items-center">
                           <TrendingUp className="h-6 w-6 text-red-500 mb-1" />
-                          <div className="text-lg font-bold">+15%</div>
+                          <div className={`text-lg font-bold ${
+                            analyticsData.lastMonthComparison >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {analyticsData.lastMonthComparison >= 0 ? '+' : '-'}{Math.abs(analyticsData.lastMonthComparison)}%
+                          </div>
                           <div className="text-xs text-gray-400">先月比</div>
                         </div>
                         <div className="bg-white border border-red-900/30 rounded-md p-3 flex flex-col items-center">
                           <Dumbbell className="h-6 w-6 text-red-500 mb-1" />
-                          <div className="text-lg font-bold">120kg</div>
+                          <div className="text-lg font-bold text-black">{analyticsData.maxBenchPress}kg</div>
                           <div className="text-xs text-gray-400">最大ベンチプレス</div>
                         </div>
                         <div className="bg-white border border-red-900/30 rounded-md p-3 flex flex-col items-center">
                           <Calendar className="h-6 w-6 text-red-500 mb-1" />
-                          <div className="text-lg font-bold">156</div>
+                          <div className="text-lg font-bold text-black">{analyticsData.yearProgress}</div>
                           <div className="text-xs text-gray-400">年間トレーニング日数</div>
                         </div>
                       </div>
@@ -787,12 +947,12 @@ export function ProfileTab({
 
 // サンプルデータ
 const userPosts = [
-  { id: 1, image: "/placeholder.svg?height=200&width=200", workout: "胸トレーニング" },
-  { id: 2, image: "/placeholder.svg?height=200&width=200", workout: "背中トレーニング" },
-  { id: 3, image: "/placeholder.svg?height=200&width=200", workout: "脚トレーニング" },
-  { id: 4, image: "/placeholder.svg?height=200&width=200", workout: "肩トレーニング" },
-  { id: 5, image: "/placeholder.svg?height=200&width=200", workout: "腕トレーニング" },
-  { id: 6, image: "/placeholder.svg?height=200&width=200" },
+  { id: 1, image: "https://via.placeholder.com/200x200/dc2626/ffffff?text=胸", workout: "胸トレーニング" },
+  { id: 2, image: "https://via.placeholder.com/200x200/dc2626/ffffff?text=背中", workout: "背中トレーニング" },
+  { id: 3, image: "https://via.placeholder.com/200x200/dc2626/ffffff?text=脚", workout: "脚トレーニング" },
+  { id: 4, image: "https://via.placeholder.com/200x200/dc2626/ffffff?text=肩", workout: "肩トレーニング" },
+  { id: 5, image: "https://via.placeholder.com/200x200/dc2626/ffffff?text=腕", workout: "腕トレーニング" },
+  { id: 6, image: "https://via.placeholder.com/200x200/dc2626/ffffff?text=筋トレ" },
 ]
 
 const trainingFrequency = [
