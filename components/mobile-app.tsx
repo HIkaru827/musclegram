@@ -32,6 +32,8 @@ export function MobileApp() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [viewingUser, setViewingUser] = useState<UserAccount | null>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [headerVisible, setHeaderVisible] = useState(true)
+  const [lastScrollY, setLastScrollY] = useState(0)
   
   // グローバルないいね・コメント状態
   const [globalLikesCount, setGlobalLikesCount] = useState<{[postId: string]: number}>({})
@@ -206,6 +208,26 @@ export function MobileApp() {
     }
   }, [isMenuOpen])
 
+  // スクロール監視でヘッダー表示制御
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      
+      if (currentScrollY < lastScrollY || currentScrollY <= 100) {
+        // 上にスクロールまたは上部にいる場合はヘッダーを表示
+        setHeaderVisible(true)
+      } else {
+        // 下にスクロールしている場合はヘッダーを隠す
+        setHeaderVisible(false)
+      }
+      
+      setLastScrollY(currentScrollY)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [lastScrollY])
+
   // Firebase移行により、LocalStorageイベント監視は不要
 
 
@@ -236,7 +258,9 @@ export function MobileApp() {
         // 他のユーザーのプロフィール表示
         <div className="flex-1 overflow-y-auto" style={{maxHeight: 'calc(100vh - 64px)'}}>
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4">
+          <div className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ${
+            headerVisible ? 'translate-y-0' : '-translate-y-full'
+          } flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4`}>
             <div>
               <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
             </div>
@@ -245,10 +269,9 @@ export function MobileApp() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsSearchOpen(true)}
-                className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-2"
+                className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
               >
                 <Search className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="text-xs sm:text-sm">ユーザー検索</span>
               </Button>
               <Button
                 variant="outline"
@@ -273,7 +296,9 @@ export function MobileApp() {
           <div className="flex-1 overflow-y-auto" style={{maxHeight: 'calc(100vh - 64px)'}}>
             <TabsContent value="home" className="m-0 p-0">
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4">
+              <div className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ${
+                headerVisible ? 'translate-y-0' : '-translate-y-full'
+              } flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4`}>
                 <div>
                   <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
                 </div>
@@ -282,10 +307,9 @@ export function MobileApp() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsSearchOpen(true)}
-                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-2"
+                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="text-xs sm:text-sm">ユーザー検索</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -299,7 +323,7 @@ export function MobileApp() {
               </div>
               {/* ハンバーガーメニュー */}
               {isMenuOpen && (
-                <div className="bg-red-900 border-b border-red-800 shadow-lg">
+                <div className="fixed top-16 left-0 right-0 z-40 bg-red-900 border-b border-red-800 shadow-lg">
                   <div className="flex flex-col">
                     <button
                       onClick={() => handleMenuNavigation("home")}
@@ -331,18 +355,22 @@ export function MobileApp() {
                   </div>
                 </div>
               )}
-              <HomeTab 
-                currentUser={currentUser} 
-                globalLikesCount={globalLikesCount}
-                globalUserLikes={globalUserLikes}
-                globalCommentsCount={globalCommentsCount}
-                onLikeUpdate={updateGlobalLikeState}
-                onCommentUpdate={updateGlobalCommentsCount}
-              />
+              <div className="pt-16">
+                <HomeTab 
+                  currentUser={currentUser} 
+                  globalLikesCount={globalLikesCount}
+                  globalUserLikes={globalUserLikes}
+                  globalCommentsCount={globalCommentsCount}
+                  onLikeUpdate={updateGlobalLikeState}
+                  onCommentUpdate={updateGlobalCommentsCount}
+                />
+              </div>
             </TabsContent>
             <TabsContent value="workout" className="m-0 p-0">
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4">
+              <div className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ${
+                headerVisible ? 'translate-y-0' : '-translate-y-full'
+              } flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4`}>
                 <div>
                   <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
                 </div>
@@ -351,10 +379,9 @@ export function MobileApp() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsSearchOpen(true)}
-                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-2"
+                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="text-xs sm:text-sm">ユーザー検索</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -368,7 +395,7 @@ export function MobileApp() {
               </div>
               {/* ハンバーガーメニュー */}
               {isMenuOpen && (
-                <div className="bg-red-900 border-b border-red-800 shadow-lg">
+                <div className="fixed top-16 left-0 right-0 z-40 bg-red-900 border-b border-red-800 shadow-lg">
                   <div className="flex flex-col">
                     <button
                       onClick={() => handleMenuNavigation("home")}
@@ -400,11 +427,15 @@ export function MobileApp() {
                   </div>
                 </div>
               )}
-              <WorkoutTab currentUser={currentUser} />
+              <div className="pt-16">
+                <WorkoutTab currentUser={currentUser} />
+              </div>
             </TabsContent>
             <TabsContent value="profile" className="m-0 p-0">
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4">
+              <div className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ${
+                headerVisible ? 'translate-y-0' : '-translate-y-full'
+              } flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4`}>
                 <div>
                   <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
                 </div>
@@ -413,10 +444,9 @@ export function MobileApp() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsSearchOpen(true)}
-                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-2"
+                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="text-xs sm:text-sm">ユーザー検索</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -430,7 +460,7 @@ export function MobileApp() {
               </div>
               {/* ハンバーガーメニュー */}
               {isMenuOpen && (
-                <div className="bg-red-900 border-b border-red-800 shadow-lg">
+                <div className="fixed top-16 left-0 right-0 z-40 bg-red-900 border-b border-red-800 shadow-lg">
                   <div className="flex flex-col">
                     <button
                       onClick={() => handleMenuNavigation("home")}
@@ -462,47 +492,20 @@ export function MobileApp() {
                   </div>
                 </div>
               )}
-              <ProfileTab 
-                currentUser={currentUser}
-                globalLikesCount={globalLikesCount}
-                globalUserLikes={globalUserLikes}
-                globalCommentsCount={globalCommentsCount}
-                onLikeUpdate={updateGlobalLikeState}
-                onCommentUpdate={updateGlobalCommentsCount}
-                onLogout={handleLogout}
-              />
+              <div className="pt-16">
+                <ProfileTab 
+                  currentUser={currentUser}
+                  globalLikesCount={globalLikesCount}
+                  globalUserLikes={globalUserLikes}
+                  globalCommentsCount={globalCommentsCount}
+                  onLikeUpdate={updateGlobalLikeState}
+                  onCommentUpdate={updateGlobalCommentsCount}
+                  onLogout={handleLogout}
+                />
+              </div>
             </TabsContent>
           </div>
 
-          {/* Bottom Navigation - 固定・大きく */}
-          <div className="flex-shrink-0 border-t border-red-800 bg-gradient-to-r from-red-800 to-red-950 safe-area-inset-bottom">
-            <TabsList className="w-full bg-transparent h-16 sm:h-18 md:h-20">
-              <TabsTrigger
-                value="home"
-                className="flex-1 flex flex-col items-center justify-center gap-1 data-[state=active]:text-red-400 data-[state=active]:bg-red-950/30 text-red-200"
-              >
-                <Home size={20} className="sm:w-6 sm:h-6" />
-                <span className="text-xs sm:text-sm font-medium">ホーム</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="workout"
-                className="flex-1 flex flex-col items-center justify-center gap-1 data-[state=active]:text-red-400 data-[state=active]:bg-red-950/30 text-red-200"
-              >
-                <Dumbbell size={20} className="sm:w-6 sm:h-6" />
-                <span className="text-xs sm:text-sm font-medium">記録</span>
-                {exercises.length > 0 && (
-                  <span className="text-xs text-red-400">({exercises.length})</span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger
-                value="profile"
-                className="flex-1 flex flex-col items-center justify-center gap-1 data-[state=active]:text-red-400 data-[state=active]:bg-red-950/30 text-red-200"
-              >
-                <User size={20} className="sm:w-6 sm:h-6" />
-                <span className="text-xs sm:text-sm font-medium">マイページ</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
         </Tabs>
       )}
 

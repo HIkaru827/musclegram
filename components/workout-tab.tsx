@@ -735,7 +735,7 @@ export function WorkoutTab({
                             h-10 flex items-center justify-center text-sm cursor-pointer relative
                             ${isCurrentMonth ? 'text-red-500' : 'text-gray-300'}
                             ${isToday ? 'bg-red-500 text-white rounded-full' : 'hover:bg-gray-100 rounded'}
-                            ${hasWorkout && !isToday ? 'border-2 border-black rounded-full' : ''}
+                            ${hasWorkout && !isToday ? 'border-4 border-red-500 rounded-full bg-red-50' : ''}
                             ${hasWorkout ? 'cursor-pointer' : 'cursor-default'}
                           `}
                         >
@@ -752,7 +752,7 @@ export function WorkoutTab({
                       <span>今日</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-black rounded-full"></div>
+                      <div className="w-4 h-4 border-4 border-red-500 rounded-full bg-red-50"></div>
                       <span>トレーニング記録あり</span>
                     </div>
                   </div>
