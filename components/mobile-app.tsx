@@ -205,11 +205,11 @@ export function MobileApp() {
   }
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden bg-white text-black">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-4 md:p-6">
+    <div className="flex flex-col h-screen w-full overflow-hidden bg-white text-black">
+      {/* Header - 固定 */}
+      <div className="flex-shrink-0 flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4">
         <div>
-          <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-red-500">MuscleGram</h1>
+          <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
           <p className="text-xs text-red-300">
             ☁️ Firebase
           </p>
@@ -219,26 +219,28 @@ export function MobileApp() {
             variant="outline"
             size="sm"
             onClick={() => setIsSearchOpen(true)}
-            className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 flex items-center gap-2 px-3 py-2"
+            className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-2"
           >
-            <Search className="h-4 w-4" />
-            <span className="text-sm">ユーザー検索</span>
+            <Search className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="text-xs sm:text-sm">ユーザー検索</span>
           </Button>
         </div>
       </div>
 
-      {/* メインコンテンツ */}
+      {/* メインコンテンツ - スクロール可能エリア */}
       {viewingUser ? (
         // 他のユーザーのプロフィール表示
-        <OtherProfileTab 
-          targetUser={viewingUser}
-          currentUser={currentUser}
-          onBack={handleBackToMain}
-        />
+        <div className="flex-1 overflow-hidden">
+          <OtherProfileTab 
+            targetUser={viewingUser}
+            currentUser={currentUser}
+            onBack={handleBackToMain}
+          />
+        </div>
       ) : (
         // 通常のタブ表示
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
-          {/* Content */}
+          {/* Content - スクロール可能 */}
           <div className="flex-1 min-h-0 overflow-hidden">
             <TabsContent value="home" className="h-full m-0 p-0">
               <HomeTab 
@@ -266,32 +268,32 @@ export function MobileApp() {
             </TabsContent>
           </div>
 
-          {/* Bottom Navigation */}
-          <div className="flex-shrink-0 border-t border-red-800 bg-gradient-to-r from-red-800 to-red-950">
-            <TabsList className="w-full bg-transparent h-10 md:h-11 lg:h-12">
+          {/* Bottom Navigation - 固定・大きく */}
+          <div className="flex-shrink-0 border-t border-red-800 bg-gradient-to-r from-red-800 to-red-950 safe-area-inset-bottom">
+            <TabsList className="w-full bg-transparent h-16 sm:h-18 md:h-20">
               <TabsTrigger
                 value="home"
-                className={`flex-1 flex flex-col items-center justify-center space-y-0.5 data-[state=active]:text-red-500 data-[state=active]:bg-red-950/20`}
+                className="flex-1 flex flex-col items-center justify-center gap-1 data-[state=active]:text-red-400 data-[state=active]:bg-red-950/30 text-red-200"
               >
-                <Home size={16} className="md:w-4 md:h-4 lg:w-5 lg:h-5" />
-                <span className="text-xs">ホーム</span>
+                <Home size={20} className="sm:w-6 sm:h-6" />
+                <span className="text-xs sm:text-sm font-medium">ホーム</span>
               </TabsTrigger>
               <TabsTrigger
                 value="workout"
-                className={`flex-1 flex flex-col items-center justify-center space-y-0.5 data-[state=active]:text-red-500 data-[state=active]:bg-red-950/20`}
+                className="flex-1 flex flex-col items-center justify-center gap-1 data-[state=active]:text-red-400 data-[state=active]:bg-red-950/30 text-red-200"
               >
-                <Dumbbell size={16} className="md:w-4 md:h-4 lg:w-5 lg:h-5" />
-                <span className="text-xs">記録</span>
+                <Dumbbell size={20} className="sm:w-6 sm:h-6" />
+                <span className="text-xs sm:text-sm font-medium">記録</span>
                 {exercises.length > 0 && (
                   <span className="text-xs text-red-400">({exercises.length})</span>
                 )}
               </TabsTrigger>
               <TabsTrigger
                 value="profile"
-                className={`flex-1 flex flex-col items-center justify-center space-y-0.5 data-[state=active]:text-red-500 data-[state=active]:bg-red-950/20`}
+                className="flex-1 flex flex-col items-center justify-center gap-1 data-[state=active]:text-red-400 data-[state=active]:bg-red-950/30 text-red-200"
               >
-                <User size={16} className="md:w-4 md:h-4 lg:w-5 lg:h-5" />
-                <span className="text-xs">マイページ</span>
+                <User size={20} className="sm:w-6 sm:h-6" />
+                <span className="text-xs sm:text-sm font-medium">マイページ</span>
               </TabsTrigger>
             </TabsList>
           </div>
