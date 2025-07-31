@@ -527,6 +527,29 @@ export function WorkoutTab({
       
       console.log('Post saved to Firestore successfully:', savedPost)
       
+      // カレンダーのワークアウト日付を即座に更新
+      const timestampStr = exercise.timestamp
+      let dateStr = ''
+      
+      if (timestampStr.includes('/')) {
+        // "2024/7/29 14:30" 形式の場合
+        const datePart = timestampStr.split(' ')[0] // "2024/7/29"
+        const [year, month, day] = datePart.split('/')
+        dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      } else {
+        // その他の形式の場合
+        const date = new Date(timestampStr)
+        const year = date.getFullYear()
+        const month = (date.getMonth() + 1).toString().padStart(2, '0')
+        const day = date.getDate().toString().padStart(2, '0')
+        dateStr = `${year}-${month}-${day}`
+      }
+      
+      if (dateStr) {
+        setWorkoutDates(prev => new Set([...prev, dateStr]))
+        console.log('Added workout date to calendar:', dateStr)
+      }
+      
       // グローバル投稿更新のイベントを発火
       window.dispatchEvent(new CustomEvent('globalPostsUpdated'))
     } catch (error) {
@@ -972,6 +995,11 @@ export function WorkoutTab({
                 setIsEditModalOpen(false)
                 setEditingExercise(null)
               }}
+              onDelete={(exerciseId) => {
+                handleDeleteExercise(exerciseId)
+                setIsEditModalOpen(false)
+                setEditingExercise(null)
+              }}
             />
           )}
         </DialogContent>
@@ -1379,12 +1407,14 @@ function ExerciseEditDetail({
   exercise,
   onUpdate,
   customExercises,
-  onCancel
+  onCancel,
+  onDelete
 }: { 
   exercise: Exercise
   onUpdate: (exerciseId: number, sets: { weight: string; reps: string }[], photo?: string, memo?: string, name?: string) => void
   customExercises: {[key: string]: string[]}
   onCancel: () => void
+  onDelete?: (exerciseId: number) => void
 }) {
   const [sets, setSets] = useState(
     exercise.sets.map((set, index) => ({ 
@@ -1758,13 +1788,21 @@ function ExerciseEditDetail({
       </div>
 
       {/* アクションボタン */}
-      <div className="flex gap-3 pt-4">
+      <div className="flex gap-2 pt-4">
         <Button 
           variant="outline"
           className="flex-1 border-gray-600 text-gray-400 hover:bg-gray-800"
           onClick={onCancel}
         >
           キャンセル
+        </Button>
+        <Button 
+          variant="outline"
+          className="flex-1 border-red-600 text-red-400 hover:bg-red-900/50"
+          onClick={() => onDelete?.(exercise.id)}
+        >
+          <Trash2 className="h-4 w-4 mr-1" />
+          削除
         </Button>
         <Button 
           className="flex-1 bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500"

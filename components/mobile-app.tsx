@@ -7,13 +7,14 @@ import { auth, db } from "@/lib/firebase"
 import { firestoreNotifications } from "@/lib/firestore-utils"
 import { HomeTab } from "@/components/home-tab"
 import { WorkoutTab } from "@/components/workout-tab"
+import { AnalyticsTab } from "@/components/analytics-tab"
 import { ProfileTab } from "@/components/profile-tab"
 import { FirebaseAuthScreen } from "@/components/firebase-auth-screen"
 import { UserSearch } from "@/components/user-search"
 import { OtherProfileTab } from "@/components/other-profile-tab"
 import { NotificationsModal } from "@/components/notifications-modal"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Home, Dumbbell, User, Search, Bell } from "lucide-react"
+import { Home, Dumbbell, User, Search, Bell, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface UserAccount {
@@ -27,7 +28,15 @@ interface UserAccount {
 }
 
 export function MobileApp() {
-  const [activeTab, setActiveTab] = useState("home")
+  // ページリロード時にタブ状態を復元
+  const getInitialTab = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('musclegram_activeTab') || "home"
+    }
+    return "home"
+  }
+
+  const [activeTab, setActiveTab] = useState(getInitialTab())
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null)
   const [isAuthChecking, setIsAuthChecking] = useState(true) // 認証チェック中
@@ -314,7 +323,10 @@ export function MobileApp() {
         </div>
       ) : (
         // 通常のタブ表示
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1">
+        <Tabs value={activeTab} onValueChange={(value) => {
+          setActiveTab(value)
+          localStorage.setItem('musclegram_activeTab', value)
+        }} className="flex flex-col flex-1">
           {/* Content - フル高さでスクロール可能 */}
           <div className="flex-1 overflow-y-auto pb-16" style={{maxHeight: 'calc(100vh - 64px)'}}>
             <TabsContent value="home" className="m-0 p-0">
@@ -400,6 +412,44 @@ export function MobileApp() {
                 <WorkoutTab currentUser={currentUser} />
               </div>
             </TabsContent>
+            <TabsContent value="analytics" className="m-0 p-0">
+              {/* Header */}
+              <div className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ${
+                headerVisible ? 'translate-y-0' : '-translate-y-full'
+              } flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4`}>
+                <div>
+                  <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsSearchOpen(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                  >
+                    <Search className="h-3 w-3 sm:h-4 sm:w-4" />
+                  </Button>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNotificationClick}
+                      className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                    >
+                      <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </Button>
+                    {unreadNotificationCount > 0 && (
+                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="pt-16">
+                <AnalyticsTab currentUser={currentUser} />
+              </div>
+            </TabsContent>
             <TabsContent value="profile" className="m-0 p-0">
               {/* Header */}
               <div className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ${
@@ -458,6 +508,7 @@ export function MobileApp() {
             onClick={() => {
               setActiveTab("home")
               setViewingUser(null)
+              localStorage.setItem('musclegram_activeTab', 'home')
             }}
             className={`flex-1 flex flex-col items-center justify-center gap-1 text-white transition-colors ${
               activeTab === "home" ? "bg-red-700" : "hover:bg-red-800"
@@ -470,6 +521,7 @@ export function MobileApp() {
             onClick={() => {
               setActiveTab("workout")
               setViewingUser(null)
+              localStorage.setItem('musclegram_activeTab', 'workout')
             }}
             className={`flex-1 flex flex-col items-center justify-center gap-1 text-white transition-colors ${
               activeTab === "workout" ? "bg-red-700" : "hover:bg-red-800"
@@ -480,8 +532,22 @@ export function MobileApp() {
           </button>
           <button
             onClick={() => {
+              setActiveTab("analytics")
+              setViewingUser(null)
+              localStorage.setItem('musclegram_activeTab', 'analytics')
+            }}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 text-white transition-colors ${
+              activeTab === "analytics" ? "bg-red-700" : "hover:bg-red-800"
+            }`}
+          >
+            <BarChart3 className="h-5 w-5" />
+            <span className="text-xs font-medium">分析</span>
+          </button>
+          <button
+            onClick={() => {
               setActiveTab("profile")
               setViewingUser(null)
+              localStorage.setItem('musclegram_activeTab', 'profile')
             }}
             className={`flex-1 flex flex-col items-center justify-center gap-1 text-white transition-colors ${
               activeTab === "profile" ? "bg-red-700" : "hover:bg-red-800"
