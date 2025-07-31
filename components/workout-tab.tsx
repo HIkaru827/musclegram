@@ -40,6 +40,7 @@ export function WorkoutTab({
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedDateExercises, setSelectedDateExercises] = useState<Exercise[]>([])
   const [isDateDetailOpen, setIsDateDetailOpen] = useState(false)
+  const [selectedDateForNewWorkout, setSelectedDateForNewWorkout] = useState<Date | null>(null)
 
   // Firestoreからエクササイズデータを読み込み
   useEffect(() => {
@@ -255,17 +256,22 @@ export function WorkoutTab({
 
   // 日付クリック時の処理
   const handleDateClick = (date: Date, hasWorkout: boolean) => {
-    if (!hasWorkout) return
+    if (hasWorkout) {
+      // 既存の記録がある場合は記録詳細を表示
+      const dateString = date.toDateString()
+      const dateExercises = exercises.filter(exercise => {
+        const exerciseDate = new Date(exercise.timestamp.replace(/\//g, '-'))
+        return exerciseDate.toDateString() === dateString
+      })
 
-    const dateString = date.toDateString()
-    const dateExercises = exercises.filter(exercise => {
-      const exerciseDate = new Date(exercise.timestamp.replace(/\//g, '-'))
-      return exerciseDate.toDateString() === dateString
-    })
-
-    setSelectedDate(date.toLocaleDateString('ja-JP'))
-    setSelectedDateExercises(dateExercises)
-    setIsDateDetailOpen(true)
+      setSelectedDate(date.toLocaleDateString('ja-JP'))
+      setSelectedDateExercises(dateExercises)
+      setIsDateDetailOpen(true)
+    } else {
+      // 記録がない場合は新規記録作成
+      setSelectedDateForNewWorkout(date)
+      setIsExerciseModalOpen(true)
+    }
   }
 
   const addCustomExercise = (bodyPart: string, exerciseName: string) => {
@@ -489,8 +495,9 @@ export function WorkoutTab({
   const addExerciseFromDetail = (exerciseName: string, sets: { weight: string; reps: string }[], photo?: string, memo?: string) => {
     const validSets = sets.filter(set => set.weight && set.reps)
     if (validSets.length > 0) {
-      const now = new Date()
-      const timestamp = now.toLocaleString('ja-JP', {
+      // 選択された日付がある場合はその日付を使用、なければ現在日時
+      const targetDate = selectedDateForNewWorkout || new Date()
+      const timestamp = targetDate.toLocaleString('ja-JP', {
         year: 'numeric',
         month: 'numeric',
         day: 'numeric',
@@ -550,6 +557,7 @@ export function WorkoutTab({
       }
     }
     setIsExerciseDetailOpen(false)
+    setSelectedDateForNewWorkout(null) // リセット
   }
 
   return (
@@ -736,7 +744,7 @@ export function WorkoutTab({
                             ${isCurrentMonth ? 'text-red-500' : 'text-gray-300'}
                             ${isToday ? 'bg-red-500 text-white rounded-full' : 'hover:bg-gray-100 rounded'}
                             ${hasWorkout && !isToday ? 'border-4 border-red-500 rounded-full bg-red-50' : ''}
-                            ${hasWorkout ? 'cursor-pointer' : 'cursor-default'}
+                            cursor-pointer
                           `}
                         >
                           {dayNumber}
@@ -767,7 +775,7 @@ export function WorkoutTab({
       <Dialog open={isExerciseModalOpen} onOpenChange={setIsExerciseModalOpen}>
         <DialogTrigger asChild>
           <Button
-            className="fixed bottom-24 right-4 h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-900/50 z-10"
+            className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-900/50 z-10"
             size="icon"
           >
             <Plus className="h-6 w-6" />
@@ -801,12 +809,20 @@ export function WorkoutTab({
       </Dialog>
       
       {/* 種目詳細画面 */}
-      <Dialog open={isExerciseDetailOpen} onOpenChange={setIsExerciseDetailOpen}>
+      <Dialog open={isExerciseDetailOpen} onOpenChange={(open) => {
+        setIsExerciseDetailOpen(open)
+        if (!open) {
+          setSelectedDateForNewWorkout(null)
+        }
+      }}>
         <DialogContent className="bg-black border-red-900/50 text-white max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-red-400">{currentExercise}</DialogTitle>
             <DialogDescription className="text-gray-400">
-              セットごとの重量や回数を入力してください
+              {selectedDateForNewWorkout 
+                ? `${selectedDateForNewWorkout.toLocaleDateString('ja-JP')}の記録として保存されます`
+                : 'セットごとの重量や回数を入力してください'
+              }
             </DialogDescription>
           </DialogHeader>
           <ExerciseDetail 
@@ -944,6 +960,25 @@ export function WorkoutTab({
                 <p className="text-sm">この日の記録はありません</p>
               </div>
             )}
+            
+            {/* この日に記録を追加ボタン */}
+            <div className="pt-4 border-t border-red-900/30">
+              <Button
+                onClick={() => {
+                  if (selectedDate) {
+                    const [year, month, day] = selectedDate.split('/').map(Number)
+                    const targetDate = new Date(year, month - 1, day)
+                    setSelectedDateForNewWorkout(targetDate)
+                    setIsDateDetailOpen(false)
+                    setIsExerciseModalOpen(true)
+                  }
+                }}
+                className="w-full bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                この日に記録を追加
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

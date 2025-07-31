@@ -11,7 +11,7 @@ import { FirebaseAuthScreen } from "@/components/firebase-auth-screen"
 import { UserSearch } from "@/components/user-search"
 import { OtherProfileTab } from "@/components/other-profile-tab"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Home, Dumbbell, User, Search, Menu, X } from "lucide-react"
+import { Home, Dumbbell, User, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface UserAccount {
@@ -31,7 +31,6 @@ export function MobileApp() {
   const [isAuthChecking, setIsAuthChecking] = useState(true) // 認証チェック中
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [viewingUser, setViewingUser] = useState<UserAccount | null>(null)
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [headerVisible, setHeaderVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
   
@@ -184,29 +183,7 @@ export function MobileApp() {
     setViewingUser(null)
   }
 
-  // ハンバーガーメニューのナビゲーション処理
-  const handleMenuNavigation = (tab: string) => {
-    setActiveTab(tab)
-    setIsMenuOpen(false)
-    setViewingUser(null) // 他のユーザープロフィール表示中の場合は戻る
-  }
 
-  // メニュー外クリックで閉じる
-  useEffect(() => {
-    const handleClickOutside = () => {
-      if (isMenuOpen) {
-        setIsMenuOpen(false)
-      }
-    }
-
-    if (isMenuOpen) {
-      document.addEventListener('click', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside)
-    }
-  }, [isMenuOpen])
 
   // スクロール監視でヘッダー表示制御
   useEffect(() => {
@@ -293,7 +270,7 @@ export function MobileApp() {
         // 通常のタブ表示
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1">
           {/* Content - フル高さでスクロール可能 */}
-          <div className="flex-1 overflow-y-auto" style={{maxHeight: 'calc(100vh - 64px)'}}>
+          <div className="flex-1 overflow-y-auto pb-16" style={{maxHeight: 'calc(100vh - 64px)'}}>
             <TabsContent value="home" className="m-0 p-0">
               {/* Header */}
               <div className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ${
@@ -311,50 +288,8 @@ export function MobileApp() {
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
-                  >
-                    {isMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-                  </Button>
                 </div>
               </div>
-              {/* ハンバーガーメニュー */}
-              {isMenuOpen && (
-                <div className="fixed top-16 left-0 right-0 z-40 bg-red-900 border-b border-red-800 shadow-lg">
-                  <div className="flex flex-col">
-                    <button
-                      onClick={() => handleMenuNavigation("home")}
-                      className={`flex items-center gap-3 px-4 py-3 text-white hover:bg-red-800 transition-colors ${
-                        activeTab === "home" ? "bg-red-800" : ""
-                      }`}
-                    >
-                      <Home className="h-5 w-5" />
-                      <span className="font-medium">ホーム</span>
-                    </button>
-                    <button
-                      onClick={() => handleMenuNavigation("workout")}
-                      className={`flex items-center gap-3 px-4 py-3 text-white hover:bg-red-800 transition-colors ${
-                        activeTab === "workout" ? "bg-red-800" : ""
-                      }`}
-                    >
-                      <Dumbbell className="h-5 w-5" />
-                      <span className="font-medium">記録</span>
-                    </button>
-                    <button
-                      onClick={() => handleMenuNavigation("profile")}
-                      className={`flex items-center gap-3 px-4 py-3 text-white hover:bg-red-800 transition-colors ${
-                        activeTab === "profile" ? "bg-red-800" : ""
-                      }`}
-                    >
-                      <User className="h-5 w-5" />
-                      <span className="font-medium">マイページ</span>
-                    </button>
-                  </div>
-                </div>
-              )}
               <div className="pt-16">
                 <HomeTab 
                   currentUser={currentUser} 
@@ -383,50 +318,8 @@ export function MobileApp() {
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
-                  >
-                    {isMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-                  </Button>
                 </div>
               </div>
-              {/* ハンバーガーメニュー */}
-              {isMenuOpen && (
-                <div className="fixed top-16 left-0 right-0 z-40 bg-red-900 border-b border-red-800 shadow-lg">
-                  <div className="flex flex-col">
-                    <button
-                      onClick={() => handleMenuNavigation("home")}
-                      className={`flex items-center gap-3 px-4 py-3 text-white hover:bg-red-800 transition-colors ${
-                        activeTab === "home" ? "bg-red-800" : ""
-                      }`}
-                    >
-                      <Home className="h-5 w-5" />
-                      <span className="font-medium">ホーム</span>
-                    </button>
-                    <button
-                      onClick={() => handleMenuNavigation("workout")}
-                      className={`flex items-center gap-3 px-4 py-3 text-white hover:bg-red-800 transition-colors ${
-                        activeTab === "workout" ? "bg-red-800" : ""
-                      }`}
-                    >
-                      <Dumbbell className="h-5 w-5" />
-                      <span className="font-medium">記録</span>
-                    </button>
-                    <button
-                      onClick={() => handleMenuNavigation("profile")}
-                      className={`flex items-center gap-3 px-4 py-3 text-white hover:bg-red-800 transition-colors ${
-                        activeTab === "profile" ? "bg-red-800" : ""
-                      }`}
-                    >
-                      <User className="h-5 w-5" />
-                      <span className="font-medium">マイページ</span>
-                    </button>
-                  </div>
-                </div>
-              )}
               <div className="pt-16">
                 <WorkoutTab currentUser={currentUser} />
               </div>
@@ -448,50 +341,8 @@ export function MobileApp() {
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
-                  >
-                    {isMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-                  </Button>
                 </div>
               </div>
-              {/* ハンバーガーメニュー */}
-              {isMenuOpen && (
-                <div className="fixed top-16 left-0 right-0 z-40 bg-red-900 border-b border-red-800 shadow-lg">
-                  <div className="flex flex-col">
-                    <button
-                      onClick={() => handleMenuNavigation("home")}
-                      className={`flex items-center gap-3 px-4 py-3 text-white hover:bg-red-800 transition-colors ${
-                        activeTab === "home" ? "bg-red-800" : ""
-                      }`}
-                    >
-                      <Home className="h-5 w-5" />
-                      <span className="font-medium">ホーム</span>
-                    </button>
-                    <button
-                      onClick={() => handleMenuNavigation("workout")}
-                      className={`flex items-center gap-3 px-4 py-3 text-white hover:bg-red-800 transition-colors ${
-                        activeTab === "workout" ? "bg-red-800" : ""
-                      }`}
-                    >
-                      <Dumbbell className="h-5 w-5" />
-                      <span className="font-medium">記録</span>
-                    </button>
-                    <button
-                      onClick={() => handleMenuNavigation("profile")}
-                      className={`flex items-center gap-3 px-4 py-3 text-white hover:bg-red-800 transition-colors ${
-                        activeTab === "profile" ? "bg-red-800" : ""
-                      }`}
-                    >
-                      <User className="h-5 w-5" />
-                      <span className="font-medium">マイページ</span>
-                    </button>
-                  </div>
-                </div>
-              )}
               <div className="pt-16">
                 <ProfileTab 
                   currentUser={currentUser}
@@ -508,6 +359,48 @@ export function MobileApp() {
 
         </Tabs>
       )}
+
+      {/* 下部ナビゲーション */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-red-950 to-red-800 border-t border-red-800 h-16">
+        <div className="flex h-full">
+          <button
+            onClick={() => {
+              setActiveTab("home")
+              setViewingUser(null)
+            }}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 text-white transition-colors ${
+              activeTab === "home" ? "bg-red-700" : "hover:bg-red-800"
+            }`}
+          >
+            <Home className="h-5 w-5" />
+            <span className="text-xs font-medium">ホーム</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("workout")
+              setViewingUser(null)
+            }}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 text-white transition-colors ${
+              activeTab === "workout" ? "bg-red-700" : "hover:bg-red-800"
+            }`}
+          >
+            <Dumbbell className="h-5 w-5" />
+            <span className="text-xs font-medium">記録</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("profile")
+              setViewingUser(null)
+            }}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 text-white transition-colors ${
+              activeTab === "profile" ? "bg-red-700" : "hover:bg-red-800"
+            }`}
+          >
+            <User className="h-5 w-5" />
+            <span className="text-xs font-medium">マイページ</span>
+          </button>
+        </div>
+      </div>
 
       {/* ユーザー検索モーダル */}
       <UserSearch
