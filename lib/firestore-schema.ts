@@ -54,11 +54,35 @@ export interface FirestoreFollow {
   createdAt: string
 }
 
+export interface FirestoreCustomExercise {
+  id: string
+  userId: string
+  bodyPart: string
+  exerciseName: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FirestoreNotification {
+  id: string
+  userId: string // 通知を受け取るユーザー
+  fromUserId: string // 通知を発生させたユーザー
+  fromUserName: string // 通知を発生させたユーザーの表示名
+  fromUserAvatar: string // 通知を発生させたユーザーのアバター
+  type: 'like' | 'follow' | 'comment'
+  postId?: string // いいねやコメントの場合の投稿ID
+  message: string // 通知メッセージ
+  isRead: boolean // 既読フラグ
+  createdAt: string
+}
+
 // Firestoreコレクション名
 export const COLLECTIONS = {
   USERS: 'users',
   POSTS: 'posts',
   LIKES: 'likes',
   COMMENTS: 'comments',
-  FOLLOWS: 'follows'
+  FOLLOWS: 'follows',
+  CUSTOM_EXERCISES: 'custom_exercises',
+  NOTIFICATIONS: 'notifications'
 } as const

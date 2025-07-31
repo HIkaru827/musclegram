@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { firestorePosts } from "@/lib/firestore-utils"
+import { firestorePosts, firestoreCustomExercises } from "@/lib/firestore-utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -54,15 +54,36 @@ export function WorkoutTab({
         }))
         setExercises(userExercises)
         
-        // ワークアウト日付を抽出
+        // ワークアウト日付を抽出（YYYY-MM-DD形式で統一）
         const dates = new Set<string>()
         userExercises.forEach((exercise: any) => {
           if (exercise.timestamp) {
-            const date = new Date(exercise.timestamp.replace(/\//g, '-'))
-            dates.add(date.toDateString())
+            // タイムスタンプを解析して日付部分のみを取得
+            const timestampStr = exercise.timestamp
+            let dateStr = ''
+            
+            if (timestampStr.includes('/')) {
+              // "2024/7/29 14:30" 形式の場合
+              const datePart = timestampStr.split(' ')[0] // "2024/7/29"
+              const [year, month, day] = datePart.split('/')
+              dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+            } else {
+              // その他の形式の場合は既存の処理
+              const date = new Date(timestampStr)
+              const year = date.getFullYear()
+              const month = (date.getMonth() + 1).toString().padStart(2, '0')
+              const day = date.getDate().toString().padStart(2, '0')
+              dateStr = `${year}-${month}-${day}`
+            }
+            
+            if (dateStr) {
+              dates.add(dateStr)
+              console.log('Added workout date:', dateStr, 'from timestamp:', timestampStr)
+            }
           }
         })
         setWorkoutDates(dates)
+        console.log('All workout dates:', Array.from(dates))
       } catch (error) {
         console.error('Failed to load exercises:', error)
         setExercises([])
@@ -72,8 +93,28 @@ export function WorkoutTab({
     
     loadExercises()
 
-    // TODO: Firestoreからカスタム種目を読み込み予定
-    setCustomExercises({})
+    // Firestoreからカスタム種目を読み込み
+    const loadCustomExercises = async () => {
+      try {
+        const customExercisesList = await firestoreCustomExercises.getByUser(currentUser.id)
+        const customExercisesMap: {[key: string]: string[]} = {}
+        
+        customExercisesList.forEach(exercise => {
+          if (!customExercisesMap[exercise.bodyPart]) {
+            customExercisesMap[exercise.bodyPart] = []
+          }
+          customExercisesMap[exercise.bodyPart].push(exercise.exerciseName)
+        })
+        
+        setCustomExercises(customExercisesMap)
+        console.log('Loaded custom exercises:', customExercisesMap)
+      } catch (error) {
+        console.error('Failed to load custom exercises:', error)
+        setCustomExercises({})
+      }
+    }
+    
+    loadCustomExercises()
     setIsInitialized(true)
   }, [currentUser.id])
 
@@ -195,28 +236,46 @@ export function WorkoutTab({
     const daysInMonth = lastDay.getDate()
     const startDate = firstDay.getDay()
     
+    // 日付をYYYY-MM-DD形式に変換するヘルパー関数
+    const formatDateKey = (d: Date) => {
+      const y = d.getFullYear()
+      const m = (d.getMonth() + 1).toString().padStart(2, '0')
+      const day = d.getDate().toString().padStart(2, '0')
+      return `${y}-${m}-${day}`
+    }
+    
     const days = []
+    const today = new Date()
+    const todayKey = formatDateKey(today)
     
     // 前月の末尾の日々
     for (let i = startDate - 1; i >= 0; i--) {
       const prevDate = new Date(year, month, -i)
+      const dateKey = formatDateKey(prevDate)
       days.push({
         date: prevDate,
         isCurrentMonth: false,
-        hasWorkout: workoutDates.has(prevDate.toDateString()),
-        isToday: false
+        hasWorkout: workoutDates.has(dateKey),
+        isToday: dateKey === todayKey
       })
     }
     
     // 当月の日々
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day)
-      const today = new Date()
+      const dateKey = formatDateKey(date)
+      const hasWorkout = workoutDates.has(dateKey)
+      
+      // デバッグログ（トレーニング記録がある日のみ）
+      if (hasWorkout) {
+        console.log('Calendar day with workout:', dateKey, 'hasWorkout:', hasWorkout)
+      }
+      
       days.push({
         date,
         isCurrentMonth: true,
-        hasWorkout: workoutDates.has(date.toDateString()),
-        isToday: date.toDateString() === today.toDateString()
+        hasWorkout,
+        isToday: dateKey === todayKey
       })
     }
     
@@ -224,11 +283,12 @@ export function WorkoutTab({
     const remainingDays = 42 - days.length
     for (let day = 1; day <= remainingDays; day++) {
       const nextDate = new Date(year, month + 1, day)
+      const dateKey = formatDateKey(nextDate)
       days.push({
         date: nextDate,
         isCurrentMonth: false,
-        hasWorkout: workoutDates.has(nextDate.toDateString()),
-        isToday: false
+        hasWorkout: workoutDates.has(dateKey),
+        isToday: dateKey === todayKey
       })
     }
     
@@ -258,10 +318,26 @@ export function WorkoutTab({
   const handleDateClick = (date: Date, hasWorkout: boolean) => {
     if (hasWorkout) {
       // 既存の記録がある場合は記録詳細を表示
-      const dateString = date.toDateString()
+      const targetDateKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
+      
       const dateExercises = exercises.filter(exercise => {
-        const exerciseDate = new Date(exercise.timestamp.replace(/\//g, '-'))
-        return exerciseDate.toDateString() === dateString
+        if (!exercise.timestamp) return false
+        
+        let exerciseDateKey = ''
+        if (exercise.timestamp.includes('/')) {
+          // "2024/7/29 14:30" 形式の場合
+          const datePart = exercise.timestamp.split(' ')[0] // "2024/7/29"
+          const [year, month, day] = datePart.split('/')
+          exerciseDateKey = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+        } else {
+          const exerciseDate = new Date(exercise.timestamp)
+          const year = exerciseDate.getFullYear()
+          const month = (exerciseDate.getMonth() + 1).toString().padStart(2, '0')
+          const day = exerciseDate.getDate().toString().padStart(2, '0')
+          exerciseDateKey = `${year}-${month}-${day}`
+        }
+        
+        return exerciseDateKey === targetDateKey
       })
 
       setSelectedDate(date.toLocaleDateString('ja-JP'))
@@ -274,22 +350,32 @@ export function WorkoutTab({
     }
   }
 
-  const addCustomExercise = (bodyPart: string, exerciseName: string) => {
-    const updatedCustomExercises = {
-      ...customExercises,
-      [bodyPart]: [...(customExercises[bodyPart] || []), exerciseName]
+  const addCustomExercise = async (bodyPart: string, exerciseName: string) => {
+    try {
+      // Firestoreに保存
+      await firestoreCustomExercises.create(currentUser.id, bodyPart, exerciseName)
+      
+      // ローカル状態を更新
+      const updatedCustomExercises = {
+        ...customExercises,
+        [bodyPart]: [...(customExercises[bodyPart] || []), exerciseName]
+      }
+      setCustomExercises(updatedCustomExercises)
+      
+      console.log('Custom exercise added:', bodyPart, exerciseName)
+    } catch (error) {
+      console.error('Failed to add custom exercise:', error)
+      alert('カスタム項目の追加に失敗しました')
     }
-    setCustomExercises(updatedCustomExercises)
-    localStorage.setItem(`customExercises_${currentUser.id}`, JSON.stringify(updatedCustomExercises))
   }
 
   const handleCustomExerciseAdd = (bodyPart: string) => {
     setIsAddingCustomExercise({ bodyPart })
   }
 
-  const handleCustomExerciseSubmit = () => {
+  const handleCustomExerciseSubmit = async () => {
     if (isAddingCustomExercise && customExerciseName.trim()) {
-      addCustomExercise(isAddingCustomExercise.bodyPart, customExerciseName.trim())
+      await addCustomExercise(isAddingCustomExercise.bodyPart, customExerciseName.trim())
       setCurrentExercise(customExerciseName.trim())
       setCustomExerciseName("")
       setIsAddingCustomExercise(null)
@@ -470,15 +556,49 @@ export function WorkoutTab({
     setExerciseDeleteConfirmation(null)
   }
 
-  const updateExercise = (exerciseId: number, updatedSets: { weight: string; reps: string }[], photo?: string, memo?: string, name?: string) => {
+  const updateExercise = async (exerciseId: number, updatedSets: { weight: string; reps: string }[], photo?: string, memo?: string, name?: string) => {
+    const targetExercise = exercises.find(exercise => exercise.id === exerciseId)
+    if (!targetExercise) return
+
+    const updatedExercise = { 
+      ...targetExercise, 
+      sets: updatedSets, 
+      photo, 
+      memo, 
+      name: name || targetExercise.name 
+    }
+
     const updatedExercises = exercises.map(exercise => 
-      exercise.id === exerciseId 
-        ? { ...exercise, sets: updatedSets, photo, memo, name: name || exercise.name }
-        : exercise
+      exercise.id === exerciseId ? updatedExercise : exercise
     )
     setExercises(updatedExercises)
     
-    // 即座にローカルストレージに保存
+    // Firestoreの投稿も更新
+    try {
+      if (targetExercise.postId) {
+        const postContent = memo || `${updatedExercise.name}を投稿しました！`
+        
+        await firestorePosts.update(targetExercise.postId, {
+          content: postContent,
+          exercise: {
+            id: updatedExercise.id,
+            name: updatedExercise.name,
+            sets: updatedExercise.sets,
+            memo: updatedExercise.memo,
+            photo: updatedExercise.photo
+          }
+        })
+        
+        console.log('Post updated in Firestore successfully:', targetExercise.postId)
+        
+        // グローバル投稿更新のイベントを発火
+        window.dispatchEvent(new CustomEvent('globalPostsUpdated'))
+      }
+    } catch (error) {
+      console.error('Failed to update post in Firestore:', error)
+    }
+    
+    // ローカルストレージに保存
     try {
       const limitedExercises = updatedExercises.slice(-50)
       localStorage.setItem(`workoutExercises_${currentUser.id}`, JSON.stringify(limitedExercises))
@@ -829,6 +949,7 @@ export function WorkoutTab({
             exerciseName={currentExercise} 
             onComplete={addExerciseFromDetail}
             currentUser={currentUser}
+            selectedDate={selectedDateForNewWorkout}
           />
         </DialogContent>
       </Dialog>
@@ -885,7 +1006,52 @@ export function WorkoutTab({
       )}
 
       {/* 日付詳細モーダル */}
-      <Dialog open={isDateDetailOpen} onOpenChange={setIsDateDetailOpen}>
+      <Dialog open={isDateDetailOpen} onOpenChange={(open) => {
+        setIsDateDetailOpen(open)
+        if (!open) {
+          // モーダルを閉じる時にデータを再読み込み
+          const loadExercises = async () => {
+            try {
+              const userPosts = await firestorePosts.getByUser(currentUser.id)
+              const userExercises = userPosts.map((post: any) => ({
+                ...post.exercise,
+                postId: post.id,
+                timestamp: post.timestamp
+              }))
+              setExercises(userExercises)
+              
+              // ワークアウト日付を再計算
+              const dates = new Set<string>()
+              userExercises.forEach((exercise: any) => {
+                if (exercise.timestamp) {
+                  const timestampStr = exercise.timestamp
+                  let dateStr = ''
+                  
+                  if (timestampStr.includes('/')) {
+                    const datePart = timestampStr.split(' ')[0]
+                    const [year, month, day] = datePart.split('/')
+                    dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+                  } else {
+                    const date = new Date(timestampStr)
+                    const year = date.getFullYear()
+                    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+                    const day = date.getDate().toString().padStart(2, '0')
+                    dateStr = `${year}-${month}-${day}`
+                  }
+                  
+                  if (dateStr) {
+                    dates.add(dateStr)
+                  }
+                }
+              })
+              setWorkoutDates(dates)
+            } catch (error) {
+              console.error('Failed to reload exercises:', error)
+            }
+          }
+          loadExercises()
+        }
+      }}>
         <DialogContent className="bg-black border-red-900/50 text-white max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-red-400">{selectedDate}のトレーニング記録</DialogTitle>
@@ -896,7 +1062,18 @@ export function WorkoutTab({
           <div className="space-y-4">
             {selectedDateExercises.length > 0 ? (
               selectedDateExercises.map((exercise) => (
-                <div key={exercise.id} className="border border-red-900/30 rounded-md p-3 bg-gray-900/50">
+                <div key={exercise.id} className="border border-red-900/30 rounded-md p-3 bg-gray-900/50 relative">
+                  {/* 編集ボタン */}
+                  <div className="absolute top-2 right-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-400 hover:bg-red-950/30"
+                      onClick={() => handleEditExercise(exercise)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <div className="flex gap-4">
                     {/* 左側：情報エリア */}
                     <div className="w-1/2">
@@ -1631,11 +1808,13 @@ function ExerciseEditDetail({
 function ExerciseDetail({ 
   exerciseName, 
   onComplete,
-  currentUser
+  currentUser,
+  selectedDate
 }: { 
   exerciseName: string
   onComplete: (exerciseName: string, sets: { weight: string; reps: string }[], photo?: string, memo?: string) => void
   currentUser: UserAccount
+  selectedDate?: Date | null
 }) {
   const [sets, setSets] = useState([
     { id: 1, weight: "", reps: "" },

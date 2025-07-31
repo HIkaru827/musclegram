@@ -22,6 +22,8 @@ import {
   FirestoreLike, 
   FirestoreComment, 
   FirestoreFollow, 
+  FirestoreCustomExercise,
+  FirestoreNotification,
   COLLECTIONS 
 } from "@/lib/firestore-schema"
 
@@ -144,6 +146,17 @@ export const firestorePosts = {
       id: doc.id,
       ...doc.data()
     })) as FirestorePost[]
+  },
+
+  // 投稿更新
+  async update(postId: string, updateData: Partial<Omit<FirestorePost, 'id' | 'createdAt' | 'updatedAt'>>) {
+    const docRef = doc(db, COLLECTIONS.POSTS, postId)
+    const updatedData = {
+      ...updateData,
+      updatedAt: new Date().toISOString()
+    }
+    await updateDoc(docRef, updatedData)
+    return updatedData
   },
 
   // 投稿削除
@@ -319,6 +332,135 @@ export const firestoreComments = {
   // コメント削除
   async delete(commentId: string) {
     const docRef = doc(db, COLLECTIONS.COMMENTS, commentId)
+    await deleteDoc(docRef)
+  }
+}
+
+// カスタム筋トレ項目関連操作
+export const firestoreCustomExercises = {
+  // カスタム項目作成
+  async create(userId: string, bodyPart: string, exerciseName: string) {
+    const collectionRef = collection(db, COLLECTIONS.CUSTOM_EXERCISES)
+    const now = new Date().toISOString()
+    
+    const customExercise: Omit<FirestoreCustomExercise, 'id'> = {
+      userId,
+      bodyPart,
+      exerciseName,
+      createdAt: now,
+      updatedAt: now
+    }
+    
+    const docRef = await addDoc(collectionRef, customExercise)
+    return { ...customExercise, id: docRef.id } as FirestoreCustomExercise
+  },
+
+  // ユーザーのカスタム項目取得
+  async getByUser(userId: string): Promise<FirestoreCustomExercise[]> {
+    const q = query(
+      collection(db, COLLECTIONS.CUSTOM_EXERCISES),
+      where('userId', '==', userId)
+    )
+    
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as FirestoreCustomExercise[]
+  },
+
+  // カスタム項目削除
+  async delete(exerciseId: string) {
+    const docRef = doc(db, COLLECTIONS.CUSTOM_EXERCISES, exerciseId)
+    await deleteDoc(docRef)
+  },
+
+  // 項目名更新
+  async update(exerciseId: string, exerciseName: string) {
+    const docRef = doc(db, COLLECTIONS.CUSTOM_EXERCISES, exerciseId)
+    const updatedData = {
+      exerciseName,
+      updatedAt: new Date().toISOString()
+    }
+    await updateDoc(docRef, updatedData)
+    return updatedData
+  }
+}
+
+// 通知関連操作
+export const firestoreNotifications = {
+  // 通知作成
+  async create(notificationData: Omit<FirestoreNotification, 'id' | 'createdAt'>) {
+    const collectionRef = collection(db, COLLECTIONS.NOTIFICATIONS)
+    const now = new Date().toISOString()
+    
+    const notification: Omit<FirestoreNotification, 'id'> = {
+      ...notificationData,
+      createdAt: now
+    }
+    
+    const docRef = await addDoc(collectionRef, notification)
+    return { ...notification, id: docRef.id } as FirestoreNotification
+  },
+
+  // ユーザーの通知取得（最新順）
+  async getByUser(userId: string, limitCount: number = 50): Promise<FirestoreNotification[]> {
+    const q = query(
+      collection(db, COLLECTIONS.NOTIFICATIONS),
+      where('userId', '==', userId)
+    )
+    
+    const querySnapshot = await getDocs(q)
+    const notifications = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as FirestoreNotification[]
+    
+    // クライアント側でソートして制限
+    return notifications
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limitCount)
+  },
+
+  // 未読通知数を取得
+  async getUnreadCount(userId: string): Promise<number> {
+    const q = query(
+      collection(db, COLLECTIONS.NOTIFICATIONS),
+      where('userId', '==', userId),
+      where('isRead', '==', false)
+    )
+    
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.size
+  },
+
+  // 通知を既読にする
+  async markAsRead(notificationId: string) {
+    const docRef = doc(db, COLLECTIONS.NOTIFICATIONS, notificationId)
+    await updateDoc(docRef, {
+      isRead: true
+    })
+  },
+
+  // ユーザーの全通知を既読にする
+  async markAllAsRead(userId: string) {
+    const q = query(
+      collection(db, COLLECTIONS.NOTIFICATIONS),
+      where('userId', '==', userId),
+      where('isRead', '==', false)
+    )
+    
+    const querySnapshot = await getDocs(q)
+    const updatePromises = querySnapshot.docs.map(doc => 
+      updateDoc(doc.ref, { isRead: true })
+    )
+    
+    await Promise.all(updatePromises)
+  },
+
+  // 通知削除
+  async delete(notificationId: string) {
+    const docRef = doc(db, COLLECTIONS.NOTIFICATIONS, notificationId)
     await deleteDoc(docRef)
   }
 }

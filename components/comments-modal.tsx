@@ -102,7 +102,7 @@ export function CommentsModal({ isOpen, onClose, postId, currentUser, onUserClic
 
     setIsSubmitting(true)
     try {
-      const { firestoreComments } = await import('@/lib/firestore-utils')
+      const { firestoreComments, firestorePosts, firestoreNotifications } = await import('@/lib/firestore-utils')
       
       // Firestoreにコメントを保存
       const savedComment = await firestoreComments.add(postId, currentUser.id, newComment.trim())
@@ -129,6 +129,29 @@ export function CommentsModal({ isOpen, onClose, postId, currentUser, onUserClic
       window.dispatchEvent(new CustomEvent('commentsUpdated', {
         detail: { postId, count: updatedComments.length }
       }))
+      
+      // 投稿者に通知を送信（自分の投稿以外の場合）
+      try {
+        const firebasePosts = await firestorePosts.getAll()
+        const post = firebasePosts.find(p => p.id === postId)
+        if (post && post.userId !== currentUser.id) {
+          await firestoreNotifications.create({
+            userId: post.userId, // 通知を受け取るユーザー（投稿者）
+            fromUserId: currentUser.id, // 通知を発生させたユーザー（コメントした人）
+            fromUserName: currentUser.displayName,
+            fromUserAvatar: currentUser.avatar,
+            type: 'comment',
+            postId: postId,
+            message: 'からコメントされました',
+            isRead: false
+          })
+          
+          // 通知更新イベントを発火
+          window.dispatchEvent(new CustomEvent('notificationUpdated'))
+        }
+      } catch (notificationError) {
+        console.error('Failed to create comment notification:', notificationError)
+      }
       
       setNewComment("")
     } catch (error) {
@@ -324,7 +347,7 @@ export function CommentsModal({ isOpen, onClose, postId, currentUser, onUserClic
                                   value={replyContent}
                                   onChange={(e) => setReplyContent(e.target.value)}
                                   placeholder={`@${comment.user.username} に返信`}
-                                  className="min-h-[60px] text-sm resize-none border-gray-300"
+                                  className="min-h-[60px] text-sm resize-none border-gray-300 bg-white text-black focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
                                 />
                                 <div className="flex justify-end gap-2 mt-2">
                                   <Button
@@ -428,7 +451,7 @@ export function CommentsModal({ isOpen, onClose, postId, currentUser, onUserClic
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="コメントを入力..."
-                  className="min-h-[80px] resize-none border-gray-300"
+                  className="min-h-[80px] resize-none border-gray-300 bg-white text-black focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
                 />
                 <div className="flex justify-end mt-2">
                   <Button

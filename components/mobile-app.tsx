@@ -4,14 +4,16 @@ import { useState, useEffect } from "react"
 import { onAuthStateChanged, signOut } from "firebase/auth"
 import { doc, getDoc, setDoc } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
+import { firestoreNotifications } from "@/lib/firestore-utils"
 import { HomeTab } from "@/components/home-tab"
 import { WorkoutTab } from "@/components/workout-tab"
 import { ProfileTab } from "@/components/profile-tab"
 import { FirebaseAuthScreen } from "@/components/firebase-auth-screen"
 import { UserSearch } from "@/components/user-search"
 import { OtherProfileTab } from "@/components/other-profile-tab"
+import { NotificationsModal } from "@/components/notifications-modal"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Home, Dumbbell, User, Search } from "lucide-react"
+import { Home, Dumbbell, User, Search, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface UserAccount {
@@ -33,6 +35,8 @@ export function MobileApp() {
   const [viewingUser, setViewingUser] = useState<UserAccount | null>(null)
   const [headerVisible, setHeaderVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
   
   // グローバルないいね・コメント状態
   const [globalLikesCount, setGlobalLikesCount] = useState<{[postId: string]: number}>({})
@@ -61,6 +65,8 @@ export function MobileApp() {
               createdAt: userData.createdAt || new Date().toISOString()
             }
             setCurrentUser(userAccount)
+            // 通知数も読み込み
+            loadUnreadNotificationCount(userAccount.id)
           } else {
             // ユーザードキュメントが存在しない場合は新規作成
             const newUserAccount: UserAccount = {
@@ -154,10 +160,22 @@ export function MobileApp() {
     setExercises([])
   }
 
+  // 未読通知数を読み込む
+  const loadUnreadNotificationCount = async (userId: string) => {
+    try {
+      const count = await firestoreNotifications.getUnreadCount(userId)
+      setUnreadNotificationCount(count)
+    } catch (error) {
+      console.error('Failed to load unread notification count:', error)
+      setUnreadNotificationCount(0)
+    }
+  }
+
   // 認証成功時の処理
   const handleAuthSuccess = (user: UserAccount) => {
     setCurrentUser(user)
     loadUserData(user.id)
+    loadUnreadNotificationCount(user.id)
   }
 
   // ログアウト処理
@@ -182,6 +200,27 @@ export function MobileApp() {
   const handleBackToMain = () => {
     setViewingUser(null)
   }
+
+  // 通知ボタンクリック処理
+  const handleNotificationClick = () => {
+    setIsNotificationsOpen(true)
+    setUnreadNotificationCount(0) // カウントをリセット
+  }
+
+  // 通知更新リスナー
+  useEffect(() => {
+    const handleNotificationUpdate = () => {
+      if (currentUser) {
+        loadUnreadNotificationCount(currentUser.id)
+      }
+    }
+
+    window.addEventListener('notificationUpdated', handleNotificationUpdate)
+    
+    return () => {
+      window.removeEventListener('notificationUpdated', handleNotificationUpdate)
+    }
+  }, [currentUser])
 
 
 
@@ -250,14 +289,21 @@ export function MobileApp() {
               >
                 <Search className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
-              >
-                {isMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-              </Button>
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNotificationClick}
+                  className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                >
+                  <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
+                </Button>
+                {unreadNotificationCount > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <OtherProfileTab 
@@ -288,6 +334,21 @@ export function MobileApp() {
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNotificationClick}
+                      className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                    >
+                      <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </Button>
+                    {unreadNotificationCount > 0 && (
+                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="pt-16">
@@ -318,6 +379,21 @@ export function MobileApp() {
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNotificationClick}
+                      className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                    >
+                      <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </Button>
+                    {unreadNotificationCount > 0 && (
+                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="pt-16">
@@ -341,6 +417,21 @@ export function MobileApp() {
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNotificationClick}
+                      className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                    >
+                      <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </Button>
+                    {unreadNotificationCount > 0 && (
+                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="pt-16">
@@ -410,6 +501,12 @@ export function MobileApp() {
         onUserClick={handleUserClick}
       />
 
+      {/* 通知モーダル */}
+      <NotificationsModal
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+        currentUser={currentUser}
+      />
 
     </div>
   )

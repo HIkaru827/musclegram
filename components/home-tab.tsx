@@ -190,7 +190,7 @@ export function HomeTab({
   // いいねボタンのハンドラー
   const handleLike = async (postId: string) => {
     try {
-      const { firestoreLikes } = await import('@/lib/firestore-utils')
+      const { firestoreLikes, firestoreNotifications } = await import('@/lib/firestore-utils')
       const isCurrentlyLiked = globalUserLikes.has(postId)
       
       if (isCurrentlyLiked) {
@@ -203,6 +203,24 @@ export function HomeTab({
         await firestoreLikes.add(postId, currentUser.id)
         const newCount = (globalLikesCount[postId] || 0) + 1
         onLikeUpdate(postId, true, newCount)
+        
+        // 通知を作成（自分の投稿以外の場合）
+        const post = globalPosts.find(p => p.id === postId)
+        if (post && post.userId !== currentUser.id) {
+          await firestoreNotifications.create({
+            userId: post.userId, // 通知を受け取るユーザー（投稿者）
+            fromUserId: currentUser.id, // 通知を発生させたユーザー（いいねした人）
+            fromUserName: currentUser.displayName,
+            fromUserAvatar: currentUser.avatar,
+            type: 'like',
+            postId: postId,
+            message: 'からイイネされました',
+            isRead: false
+          })
+          
+          // 通知更新イベントを発火
+          window.dispatchEvent(new CustomEvent('notificationUpdated'))
+        }
       }
     } catch (error) {
       console.error('Failed to update like status:', error)

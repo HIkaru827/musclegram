@@ -102,7 +102,7 @@ export function UserProfile({ isOpen, onClose, targetUser, currentUser }: UserPr
     }
 
     try {
-      const { firestoreFollows } = await import('@/lib/firestore-utils')
+      const { firestoreFollows, firestoreNotifications } = await import('@/lib/firestore-utils')
       
       if (isFollowing) {
         // アンフォロー
@@ -114,6 +114,20 @@ export function UserProfile({ isOpen, onClose, targetUser, currentUser }: UserPr
         await firestoreFollows.add(currentUser.id, targetUser.id)
         setIsFollowing(true)
         setFollowersCount(prev => prev + 1)
+        
+        // フォロー通知を作成
+        await firestoreNotifications.create({
+          userId: targetUser.id, // 通知を受け取るユーザー（フォローされた人）
+          fromUserId: currentUser.id, // 通知を発生させたユーザー（フォローした人）
+          fromUserName: currentUser.displayName,
+          fromUserAvatar: currentUser.avatar,
+          type: 'follow',
+          message: 'からフォローされました',
+          isRead: false
+        })
+        
+        // 通知更新イベントを発火
+        window.dispatchEvent(new CustomEvent('notificationUpdated'))
       }
       
       // フォロー関係更新のイベントを発火
