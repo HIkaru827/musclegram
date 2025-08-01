@@ -24,6 +24,7 @@ import {
   FirestoreFollow, 
   FirestoreCustomExercise,
   FirestoreNotification,
+  FirestoreDaysGoal,
   COLLECTIONS 
 } from "@/lib/firestore-schema"
 
@@ -461,6 +462,63 @@ export const firestoreNotifications = {
   // 通知削除
   async delete(notificationId: string) {
     const docRef = doc(db, COLLECTIONS.NOTIFICATIONS, notificationId)
+    await deleteDoc(docRef)
+  }
+}
+
+// 日数目標関連操作
+export const firestoreDaysGoals = {
+  // 日数目標を作成/更新
+  async set(userId: string, monthlyTarget: number): Promise<FirestoreDaysGoal> {
+    const docRef = doc(db, COLLECTIONS.DAYS_GOALS, userId)
+    const now = new Date().toISOString()
+    
+    // 既存のドキュメントを確認
+    const docSnap = await getDoc(docRef)
+    
+    if (docSnap.exists()) {
+      // 既存のドキュメントがある場合は更新
+      const updateData = {
+        monthlyTarget,
+        updatedAt: now
+      }
+      await updateDoc(docRef, updateData)
+      
+      const existingData = docSnap.data() as FirestoreDaysGoal
+      return {
+        ...existingData,
+        ...updateData
+      }
+    } else {
+      // 新規作成
+      const daysGoal: FirestoreDaysGoal = {
+        id: userId,
+        userId,
+        monthlyTarget,
+        createdAt: now,
+        updatedAt: now
+      }
+      
+      await setDoc(docRef, daysGoal)
+      return daysGoal
+    }
+  },
+
+  // 日数目標を取得
+  async get(userId: string): Promise<FirestoreDaysGoal | null> {
+    const docRef = doc(db, COLLECTIONS.DAYS_GOALS, userId)
+    const docSnap = await getDoc(docRef)
+    
+    if (docSnap.exists()) {
+      return docSnap.data() as FirestoreDaysGoal
+    }
+    
+    return null
+  },
+
+  // 日数目標を削除
+  async delete(userId: string) {
+    const docRef = doc(db, COLLECTIONS.DAYS_GOALS, userId)
     await deleteDoc(docRef)
   }
 }

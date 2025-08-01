@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://musclegram.app'),
   title: "MuscleGram - 筋トレ記録SNS | トレーニング管理・分析アプリ",
   description: "筋トレ記録、分析、SNS機能が充実したフィットネスアプリ。重量向上を可視化し、トレーニング仲間と記録を共有。目標設定から進捗管理まで、あなたの筋トレライフをサポートします。",
   keywords: [

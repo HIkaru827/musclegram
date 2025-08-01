@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { firestorePosts } from "@/lib/firestore-utils"
+import { firestorePosts, firestoreDaysGoals } from "@/lib/firestore-utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Progress } from "@/components/ui/progress"
@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BarChart3, FlameIcon as Fire, TrendingUp, Calendar, Dumbbell, Target, Award, Zap, Activity, Plus, Edit, Trash2 } from "lucide-react"
+import { FlameIcon as Fire, TrendingUp, Calendar, Dumbbell, Target, Award, Zap, Activity, Plus, Edit, Trash2 } from "lucide-react"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface UserAccount {
   id: string
@@ -19,6 +20,12 @@ interface UserAccount {
   bio: string
   avatar: string
   createdAt: string
+}
+
+interface DaysGoal {
+  monthlyTarget: number
+  currentMonthDays: number
+  achievementRate: number
 }
 
 interface StrengthProgress {
@@ -39,6 +46,14 @@ interface VolumeData {
   improvement: number
 }
 
+interface VolumeChartData {
+  date: string
+  volume: number
+  label: string
+}
+
+type VolumePeriod = '1week' | '1month' | '1year'
+
 interface BodyPartBalance {
   name: string
   percentage: number
@@ -55,58 +70,33 @@ interface Goal {
 }
 
 
-// 筋トレ種目の選択肢
-const exerciseOptions = {
-  "胸": [
-    "ベンチプレス",
-    "インクラインベンチプレス",
-    "デクラインベンチプレス",
-    "ダンベルプレス",
-    "ダンベルフライ",
-    "プッシュアップ",
-    "チェストプレス",
-    "ディップス"
-  ],
-  "背中": [
-    "デッドリフト",
-    "プルアップ",
-    "チンアップ",
-    "ラットプルダウン",
-    "ローイング",
-    "ダンベルロウ",
-    "シーテッドロウ",
-    "ベントオーバーロウ"
-  ],
-  "脚": [
-    "スクワット",
-    "フロントスクワット",
-    "レッグプレス",
-    "レッグカール",
-    "レッグエクステンション",
-    "ランジ",
-    "カーフレイズ",
-    "ブルガリアンスクワット"
-  ],
-  "肩": [
-    "ショルダープレス",
-    "ダンベルプレス",
-    "サイドレイズ",
-    "フロントレイズ",
-    "リアレイズ",
-    "アップライトロウ",
-    "シュラッグ",
-    "フェイスプル"
-  ],
-  "腕": [
-    "バーベルカール",
-    "ダンベルカール",
-    "ハンマーカール",
-    "トライセプスプレス",
-    "ディップス",
-    "クローズグリップベンチプレス",
-    "プリーチャーカール",
-    "トライセプスエクステンション"
-  ]
+// 総合的な種目リストを取得する関数
+const getAllExercises = (customExercises: {[key: string]: string[]} = {}) => {
+  const allExercises: string[] = []
+  
+  // 既定の種目を追加（workout-tab.tsxからコピー）
+  const baseExercises = {
+    "胸": ["ベンチプレス", "ペックフライ", "チェストプレス"],
+    "背中": ["デッドリフト", "ラットプルダウン", "プーリーロー"],
+    "脚": ["スクワット", "スミスマシン・バーベルスクワット", "レッグプレス"],
+    "肩": ["サイドレイズ", "ショルダープレス", "フロントレイズ"],
+    "腕": ["フィンガーロール", "バーベルカール", "アームカール"],
+    "お尻": ["ヒップスラスト"],
+    "腹筋": ["プランク", "上体起こし"],
+    "有酸素運動": ["ランニング", "サイクリング", "エリプティカル"]
+  }
+  
+  // 既定の種目を追加
+  Object.values(baseExercises).forEach(exercises => {
+    allExercises.push(...exercises)
+  })
+  
+  // カスタム種目を追加
+  Object.values(customExercises).forEach(exercises => {
+    allExercises.push(...exercises)
+  })
+  
+  return [...new Set(allExercises)] // 重複を除去
 }
 
 export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
@@ -141,8 +131,7 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [newGoalName, setNewGoalName] = useState("")
   const [newGoalTarget, setNewGoalTarget] = useState("")
-  const [newGoalCurrent, setNewGoalCurrent] = useState("")
-  const [selectedBodyPart, setSelectedBodyPart] = useState("")
+  const [availableExercises, setAvailableExercises] = useState<string[]>([])
 
   const [trainingFrequency, setTrainingFrequency] = useState([
     { day: '月', percentage: 0 },
@@ -153,6 +142,16 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
     { day: '土', percentage: 0 },
     { day: '日', percentage: 0 }
   ])
+
+  const [weeklyWorkoutDays, setWeeklyWorkoutDays] = useState(0)
+  const [daysGoal, setDaysGoal] = useState<DaysGoal>({
+    monthlyTarget: 12,
+    currentMonthDays: 0,
+    achievementRate: 0
+  })
+
+  const [volumeChartData, setVolumeChartData] = useState<VolumeChartData[]>([])
+  const [volumePeriod, setVolumePeriod] = useState<VolumePeriod>('1month')
 
   // 重量・レップ数の成長分析（重量が向上した場合のみ、1種目につき1つまで、最大5個まで）
   const calculateStrengthProgress = (exercises: any[]): StrengthProgress[] => {
@@ -260,6 +259,84 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
     }
   }
 
+  // ボリュームチャートデータを計算
+  const calculateVolumeChartData = (exercises: any[], period: VolumePeriod): VolumeChartData[] => {
+    const now = new Date()
+    const data: VolumeChartData[] = []
+
+    const calculateVolume = (exercisesList: any[]) => {
+      return exercisesList.reduce((total, exercise) => {
+        return total + exercise.sets.reduce((setTotal: number, set: any) => {
+          const weight = parseInt(set.weight) || 0
+          const reps = parseInt(set.reps) || 0
+          return setTotal + (weight * reps)
+        }, 0)
+      }, 0)
+    }
+
+    if (period === '1week') {
+      // 過去7日間のデータ
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(now)
+        date.setDate(now.getDate() - i)
+        date.setHours(0, 0, 0, 0)
+        const nextDate = new Date(date)
+        nextDate.setDate(date.getDate() + 1)
+        
+        const dayExercises = exercises.filter(ex => {
+          const exDate = new Date(ex.timestamp)
+          return exDate >= date && exDate < nextDate
+        })
+        
+        data.push({
+          date: date.toISOString(),
+          volume: calculateVolume(dayExercises),
+          label: `${date.getMonth() + 1}/${date.getDate()}`
+        })
+      }
+    } else if (period === '1month') {
+      // 過去30日間のデータ（5日毎）
+      for (let i = 29; i >= 0; i -= 5) {
+        const endDate = new Date(now)
+        endDate.setDate(now.getDate() - i)
+        endDate.setHours(23, 59, 59, 999)
+        const startDate = new Date(endDate)
+        startDate.setDate(endDate.getDate() - 4)
+        startDate.setHours(0, 0, 0, 0)
+        
+        const periodExercises = exercises.filter(ex => {
+          const exDate = new Date(ex.timestamp)
+          return exDate >= startDate && exDate <= endDate
+        })
+        
+        data.push({
+          date: endDate.toISOString(),
+          volume: calculateVolume(periodExercises),
+          label: `${startDate.getMonth() + 1}/${startDate.getDate()}-${endDate.getMonth() + 1}/${endDate.getDate()}`
+        })
+      }
+    } else { // 1year
+      // 過去12ヶ月のデータ
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
+        
+        const monthExercises = exercises.filter(ex => {
+          const exDate = new Date(ex.timestamp)
+          return exDate >= date && exDate < nextMonth
+        })
+        
+        data.push({
+          date: date.toISOString(),
+          volume: calculateVolume(monthExercises),
+          label: `${date.getFullYear()}/${date.getMonth() + 1}`
+        })
+      }
+    }
+
+    return data
+  }
+
   // 筋肉部位バランス（レーダーチャート風）
   const calculateBodyPartBalance = (exercises: any[]): BodyPartBalance[] => {
     const bodyPartData = {
@@ -318,9 +395,9 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
       }))
       
       const updatedGoals = customGoals.map(goal => {
-        // 種目名に基づいて現在の最大重量を取得
+        // 種目名が完全一致するものを取得
         const exerciseData = exercises.filter(ex => 
-          ex.name && ex.name.toLowerCase().includes(goal.name.toLowerCase())
+          ex.name && ex.name === goal.name
         )
         
         let currentValue = 0 // 実際のデータから取得
@@ -350,6 +427,50 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
     } catch (error) {
       console.error('Failed to update custom goals progress:', error)
     }
+  }
+
+  // 日数目標を計算する関数
+  const calculateDaysGoal = (exercises: any[], monthlyTarget: number): DaysGoal => {
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+
+    // 今月のトレーニング日数を計算
+    const currentMonthDays = new Set(
+      exercises
+        .filter(exercise => {
+          const exerciseDate = new Date(exercise.timestamp)
+          return exerciseDate.getMonth() === currentMonth && exerciseDate.getFullYear() === currentYear
+        })
+        .map(exercise => new Date(exercise.timestamp).toDateString())
+    ).size
+
+    const achievementRate = monthlyTarget > 0 ? Math.round((currentMonthDays / monthlyTarget) * 100) : 0
+
+    return {
+      monthlyTarget,
+      currentMonthDays,
+      achievementRate
+    }
+  }
+
+  // 一週間のトレーニング日数を計算する関数
+  const calculateWeeklyWorkoutDays = (exercises: any[]): number => {
+    const now = new Date()
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - now.getDay() + 1) // 月曜日
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 6) // 日曜日
+    endOfWeek.setHours(23, 59, 59, 999) // 日曜日の終わり
+
+    return new Set(
+      exercises
+        .filter(exercise => {
+          const exerciseDate = new Date(exercise.timestamp)
+          return exerciseDate >= startOfWeek && exerciseDate <= endOfWeek
+        })
+        .map(exercise => new Date(exercise.timestamp).toDateString())
+    ).size
   }
 
   // 基本分析データを計算する関数
@@ -493,17 +614,32 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
           timestamp: post.timestamp
         }))
 
+        // Firebaseから日数目標を取得
+        const daysGoalData = await firestoreDaysGoals.get(currentUser.id)
+        const monthlyTarget = daysGoalData?.monthlyTarget || 12
+
         const analytics = calculateAnalytics(exercises)
         const strength = calculateStrengthProgress(exercises)
         const volume = calculateVolumeData(exercises)
         const bodyBalance = calculateBodyPartBalance(exercises)
         const frequency = calculateTrainingFrequency(exercises)
+        const weeklyDays = calculateWeeklyWorkoutDays(exercises)
+        const calculatedDaysGoal = calculateDaysGoal(exercises, monthlyTarget)
+        const chartData = calculateVolumeChartData(exercises, volumePeriod)
 
         setAnalyticsData(analytics)
         setStrengthProgress(strength)
         setVolumeData(volume)
         setBodyPartBalance(bodyBalance)
         setTrainingFrequency(frequency)
+        setWeeklyWorkoutDays(weeklyDays)
+        setDaysGoal(calculatedDaysGoal)
+        setVolumeChartData(chartData)
+
+        // 利用可能な種目リストを取得（カスタム種目も含む）
+        const customExercises = {} // TODO: カスタム種目をFirestoreから取得
+        const allExercises = getAllExercises(customExercises)
+        setAvailableExercises(allExercises)
 
         // カスタム目標を読み込み
         const savedCustomGoals = localStorage.getItem(`customGoals_${currentUser.id}`)
@@ -517,7 +653,7 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
     }
 
     loadAnalytics()
-  }, [currentUser.id])
+  }, [currentUser.id, volumePeriod])
 
   // カスタム目標の現在値を更新（目標が読み込まれた後）
   useEffect(() => {
@@ -660,35 +796,59 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
   }
 
   // カスタム目標の追加・編集
-  const handleSaveGoal = () => {
-    if (!newGoalName.trim() || !newGoalTarget || !newGoalCurrent) return
+  const handleSaveGoal = async () => {
+    if (!newGoalName.trim() || !newGoalTarget) return
 
-    const goalData = {
-      id: editingGoal?.id || Date.now().toString(),
-      name: newGoalName.trim(),
-      current: parseInt(newGoalCurrent),
-      target: parseInt(newGoalTarget),
-      progress: Math.min((parseInt(newGoalCurrent) / parseInt(newGoalTarget)) * 100, 100)
-    }
-
-    let updatedGoals
-    if (editingGoal) {
-      updatedGoals = customGoals.map(goal => 
-        goal.id === editingGoal.id ? goalData : goal
+    try {
+      // 現在の重量をデータから取得
+      const userPosts = await firestorePosts.getByUser(currentUser.id)
+      const exercises = userPosts.map((post: any) => ({
+        ...post.exercise,
+        timestamp: post.timestamp
+      }))
+      
+      const exerciseData = exercises.filter(ex => 
+        ex.name && ex.name === newGoalName.trim()
       )
-    } else {
-      updatedGoals = [...customGoals, goalData]
-    }
+      
+      let currentValue = 0
+      if (exerciseData.length > 0) {
+        currentValue = exerciseData.reduce((max, ex) => {
+          const maxWeight = ex.sets.reduce((setMax: number, set: any) => {
+            const weight = parseInt(set.weight) || 0
+            return Math.max(setMax, weight)
+          }, 0)
+          return Math.max(max, maxWeight)
+        }, 0)
+      }
 
-    setCustomGoals(updatedGoals)
-    localStorage.setItem(`customGoals_${currentUser.id}`, JSON.stringify(updatedGoals))
-    
-    setIsGoalModalOpen(false)
-    setEditingGoal(null)
-    setNewGoalName("")
-    setNewGoalTarget("")
-    setNewGoalCurrent("")
-    setSelectedBodyPart("")
+      const goalData = {
+        id: editingGoal?.id || Date.now().toString(),
+        name: newGoalName.trim(),
+        current: currentValue,
+        target: parseInt(newGoalTarget),
+        progress: Math.min((currentValue / parseInt(newGoalTarget)) * 100, 100)
+      }
+
+      let updatedGoals
+      if (editingGoal) {
+        updatedGoals = customGoals.map(goal => 
+          goal.id === editingGoal.id ? goalData : goal
+        )
+      } else {
+        updatedGoals = [...customGoals, goalData]
+      }
+
+      setCustomGoals(updatedGoals)
+      localStorage.setItem(`customGoals_${currentUser.id}`, JSON.stringify(updatedGoals))
+      
+      setIsGoalModalOpen(false)
+      setEditingGoal(null)
+      setNewGoalName("")
+      setNewGoalTarget("")
+    } catch (error) {
+      console.error('Failed to save goal:', error)
+    }
   }
 
   const handleDeleteGoal = (goalId: string) => {
@@ -701,18 +861,28 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
     setEditingGoal(goal)
     setNewGoalName(goal.name)
     setNewGoalTarget(goal.target.toString())
-    setNewGoalCurrent(goal.current.toString())
-    
-    // 種目名から部位を特定
-    let bodyPart = ""
-    for (const [part, exercises] of Object.entries(exerciseOptions)) {
-      if (exercises.includes(goal.name)) {
-        bodyPart = part
-        break
-      }
-    }
-    setSelectedBodyPart(bodyPart)
     setIsGoalModalOpen(true)
+  }
+
+  // 日数目標を更新する関数
+  const updateMonthlyTarget = async (newTarget: number) => {
+    try {
+      await firestoreDaysGoals.set(currentUser.id, newTarget)
+      
+      const updatedDaysGoal = {
+        ...daysGoal,
+        monthlyTarget: newTarget,
+        achievementRate: newTarget > 0 ? Math.round((daysGoal.currentMonthDays / newTarget) * 100) : 0
+      }
+      setDaysGoal(updatedDaysGoal)
+    } catch (error) {
+      console.error('Failed to update monthly target:', error)
+    }
+  }
+
+  // ボリューム期間を変更する関数
+  const handlePeriodChange = (newPeriod: VolumePeriod) => {
+    setVolumePeriod(newPeriod)
   }
 
   return (
@@ -774,65 +944,85 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {/* 週間ボリューム */}
-              <div className="space-y-4">
-                {/* 今週のボリューム */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-center mb-3">
-                    <div className="text-sm text-gray-600 mb-1">
-                      今週のトレーニングボリューム ({(() => {
-                        const now = new Date()
-                        const startOfWeek = new Date(now)
-                        startOfWeek.setDate(now.getDate() - now.getDay() + 1) // 月曜日
-                        const endOfWeek = new Date(startOfWeek)
-                        endOfWeek.setDate(startOfWeek.getDate() + 6) // 日曜日
-                        
-                        const formatDate = (date: Date) => {
-                          return `${date.getMonth() + 1}/${date.getDate()}`
-                        }
-                        
-                        return `${formatDate(startOfWeek)}～${formatDate(endOfWeek)}`
-                      })()})
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">{volumeData.thisWeek.toLocaleString()}kg</div>
-                  </div>
-                  {volumeData.improvement !== 0 && (
-                    <div className={`text-center text-sm font-medium ${
-                      volumeData.improvement > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      先週比: {volumeData.improvement > 0 ? '+' : ''}{volumeData.improvement.toFixed(1)}%
-                    </div>
-                  )}
+              {/* 期間切り替えボタン */}
+              <div className="flex justify-center mb-6">
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  {[
+                    { key: '1week', label: '1週間' },
+                    { key: '1month', label: '1ヶ月' },
+                    { key: '1year', label: '1年' }
+                  ].map((option) => (
+                    <Button
+                      key={option.key}
+                      onClick={() => handlePeriodChange(option.key as VolumePeriod)}
+                      variant={volumePeriod === option.key ? 'default' : 'ghost'}
+                      size="sm"
+                      className={`px-4 py-2 ${
+                        volumePeriod === option.key 
+                          ? 'bg-orange-500 text-white shadow-sm' 
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
                 </div>
+              </div>
 
-                {/* 先週のボリューム */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-center">
-                    <div className="text-sm text-gray-600 mb-1">
-                      先週のトレーニングボリューム ({(() => {
-                        const now = new Date()
-                        const startOfLastWeek = new Date(now)
-                        startOfLastWeek.setDate(now.getDate() - now.getDay() + 1 - 7) // 先週の月曜日
-                        const endOfLastWeek = new Date(startOfLastWeek)
-                        endOfLastWeek.setDate(startOfLastWeek.getDate() + 6) // 先週の日曜日
-                        
-                        const formatDate = (date: Date) => {
-                          return `${date.getMonth() + 1}/${date.getDate()}`
-                        }
-                        
-                        return `${formatDate(startOfLastWeek)}～${formatDate(endOfLastWeek)}`
-                      })()})
-                    </div>
-                    <div className="text-xl font-bold text-gray-900">{volumeData.lastWeek.toLocaleString()}kg</div>
-                  </div>
+              {/* チャート */}
+              <div className="h-64 mb-6">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={volumeChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="label" 
+                      tick={{ fontSize: 12 }}
+                      stroke="#666"
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      stroke="#666"
+                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => [`${value.toLocaleString()}kg`, 'ボリューム']}
+                      labelStyle={{ color: '#666' }}
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="volume" 
+                      stroke="#f97316" 
+                      strokeWidth={3}
+                      dot={{ fill: '#f97316', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: '#f97316', strokeWidth: 2, fill: 'white' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* 統計情報 */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <div className="text-lg font-bold text-gray-900">{volumeData.thisWeek.toLocaleString()}kg</div>
+                  <div className="text-xs text-gray-600">今週</div>
                 </div>
-                
-                {/* 月間ボリューム */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-center">
-                    <div className="text-sm text-gray-600 mb-1">今月の累計ボリューム</div>
-                    <div className="text-xl font-bold text-gray-900">{volumeData.thisMonth.toLocaleString()}kg</div>
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <div className="text-lg font-bold text-gray-900">{volumeData.thisMonth.toLocaleString()}kg</div>
+                  <div className="text-xs text-gray-600">今月</div>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <div className={`text-lg font-bold ${
+                    volumeData.improvement >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {volumeData.improvement >= 0 ? '+' : ''}{volumeData.improvement.toFixed(1)}%
                   </div>
+                  <div className="text-xs text-gray-600">先週比</div>
                 </div>
               </div>
             </CardContent>
@@ -886,6 +1076,7 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
                       <span className="font-medium text-gray-900">{goal.name}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">{goal.current}kg / {goal.target}kg</span>
+                        <span className="text-xs text-blue-600">(自動更新)</span>
                         <Button
                           onClick={() => openEditGoal(goal)}
                           size="sm"
@@ -919,42 +1110,95 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
             </CardContent>
           </Card>
 
-          {/* 基本統計 */}
+          {/* 一週間の筋トレ日数 */}
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-red-600" />
-                基本統計
+                <Calendar className="h-5 w-5 text-blue-600" />
+                一週間の筋トレ日数
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900">{analyticsData.thisMonthDays}</div>
-                  <div className="text-sm text-gray-600">今月のトレーニング</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className={`text-2xl font-bold ${
-                    analyticsData.lastMonthComparison >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {analyticsData.lastMonthComparison >= 0 ? '+' : ''}{analyticsData.lastMonthComparison}%
-                  </div>
-                  <div className="text-sm text-gray-600">先月比</div>
+              <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                <div className="text-4xl font-bold text-blue-600 mb-2">{weeklyWorkoutDays}</div>
+                <div className="text-sm text-gray-600 mb-1">今週のトレーニング日数</div>
+                <div className="text-xs text-gray-500">
+                  ({(() => {
+                    const now = new Date()
+                    const startOfWeek = new Date(now)
+                    startOfWeek.setDate(now.getDate() - now.getDay() + 1)
+                    const endOfWeek = new Date(startOfWeek)
+                    endOfWeek.setDate(startOfWeek.getDate() + 6)
+                    
+                    const formatDate = (date: Date) => {
+                      return `${date.getMonth() + 1}/${date.getDate()}`
+                    }
+                    
+                    return `${formatDate(startOfWeek)}～${formatDate(endOfWeek)}`
+                  })()})
                 </div>
               </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
+              
+              <div className="mt-4 bg-gray-50 rounded-lg p-4">
                 <h3 className="font-medium text-gray-900 mb-3">曜日別頻度</h3>
                 <div className="h-20 flex items-end gap-2">
                   {trainingFrequency.map((day, index) => (
                     <div key={index} className="flex-1 flex flex-col items-center">
                       <div
-                        className="w-full bg-red-500 rounded-t-sm mb-1"
+                        className="w-full bg-blue-500 rounded-t-sm mb-1"
                         style={{ height: `${Math.max(day.percentage, 5)}%` }}
                       ></div>
                       <div className="text-xs text-gray-600">{day.day}</div>
                     </div>
                   ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 日数目標 */}
+          <Card className="bg-white border-gray-200 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Award className="h-5 w-5 text-green-600" />
+                日数目標
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* 目標設定 */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-medium text-gray-900">今月の目標日数</span>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={daysGoal.monthlyTarget}
+                        onChange={(e) => updateMonthlyTarget(parseInt(e.target.value) || 0)}
+                        className="w-16 h-8 text-center"
+                        min="0"
+                        max="31"
+                      />
+                      <span className="text-sm text-gray-600">日</span>
+                    </div>
+                  </div>
+                  <Progress value={Math.min(daysGoal.achievementRate, 100)} className="h-3" />
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-sm text-gray-600">
+                      現在: {daysGoal.currentMonthDays}日 / {daysGoal.monthlyTarget}日
+                    </span>
+                    <span className={`text-sm font-medium ${
+                      daysGoal.achievementRate >= 100 ? 'text-green-600' : 
+                      daysGoal.achievementRate >= 70 ? 'text-blue-600' : 'text-gray-600'
+                    }`}>
+                      達成率: {daysGoal.achievementRate}%
+                    </span>
+                  </div>
+                  {daysGoal.achievementRate >= 100 && (
+                    <div className="text-center mt-3 text-green-600 font-medium">
+                      🎉 目標達成おめでとうございます！
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -970,59 +1214,33 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">部位を選択</label>
-              <Select value={selectedBodyPart} onValueChange={setSelectedBodyPart}>
+              <label className="text-sm font-medium text-gray-700">種目を選択</label>
+              <Select value={newGoalName} onValueChange={setNewGoalName}>
                 <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="部位を選択してください" />
+                  <SelectValue placeholder="種目を選択してください" />
                 </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(exerciseOptions).map((bodyPart) => (
-                    <SelectItem key={bodyPart} value={bodyPart}>
-                      {bodyPart}
+                <SelectContent className="max-h-60">
+                  {availableExercises.map((exercise) => (
+                    <SelectItem key={exercise} value={exercise}>
+                      {exercise}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             
-            {selectedBodyPart && (
-              <div>
-                <label className="text-sm font-medium text-gray-700">種目を選択</label>
-                <Select value={newGoalName} onValueChange={setNewGoalName}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="種目を選択してください" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {exerciseOptions[selectedBodyPart as keyof typeof exerciseOptions].map((exercise) => (
-                      <SelectItem key={exercise} value={exercise}>
-                        {exercise}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">現在の重量 (kg)</label>
-                <Input
-                  type="number"
-                  value={newGoalCurrent}
-                  onChange={(e) => setNewGoalCurrent(e.target.value)}
-                  placeholder="60"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">目標重量 (kg)</label>
-                <Input
-                  type="number"
-                  value={newGoalTarget}
-                  onChange={(e) => setNewGoalTarget(e.target.value)}
-                  placeholder="100"
-                  className="mt-1"
-                />
-              </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">目標重量 (kg)</label>
+              <Input
+                type="number"
+                value={newGoalTarget}
+                onChange={(e) => setNewGoalTarget(e.target.value)}
+                placeholder="100"
+                className="mt-1"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                現在の重量はあなたの記録から自動で取得されます
+              </p>
             </div>
             <div className="flex gap-2 pt-4">
               <Button
@@ -1031,8 +1249,6 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
                   setEditingGoal(null)
                   setNewGoalName("")
                   setNewGoalTarget("")
-                  setNewGoalCurrent("")
-                  setSelectedBodyPart("")
                 }}
                 variant="outline"
                 className="flex-1"
@@ -1042,7 +1258,7 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
               <Button
                 onClick={handleSaveGoal}
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
-                disabled={!newGoalName.trim() || !newGoalTarget || !newGoalCurrent}
+                disabled={!newGoalName.trim() || !newGoalTarget}
               >
                 {editingGoal ? '更新' : '追加'}
               </Button>

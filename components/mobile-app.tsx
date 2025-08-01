@@ -27,13 +27,30 @@ interface UserAccount {
   createdAt: string
 }
 
+interface Exercise {
+  id: number
+  name: string
+  sets: Array<{
+    weight: string
+    reps: string
+  }>
+  timestamp: string
+  photo?: string
+  memo?: string
+}
+
 export function MobileApp() {
   // ページリロード時にタブ状態を復元
   const getInitialTab = () => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('musclegram_activeTab') || "home"
+    try {
+      if (typeof window !== 'undefined') {
+        return localStorage.getItem('musclegram_activeTab') || "home"
+      }
+      return "home"
+    } catch (error) {
+      console.error('Error getting initial tab:', error)
+      return "home"
     }
-    return "home"
   }
 
   const [activeTab, setActiveTab] = useState(getInitialTab())

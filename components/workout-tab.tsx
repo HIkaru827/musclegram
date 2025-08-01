@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
-import { Dumbbell, Plus, Minus, Share2, Save, Clock, Trash2, ChevronRight, Camera, FileText, ChevronLeft, ChevronRight as ChevronRightIcon, Edit, MoreVertical } from "lucide-react"
+import { Dumbbell, Plus, Minus, Share2, Save, Clock, Trash2, ChevronRight, Camera, FileText, ChevronLeft, ChevronRight as ChevronRightIcon, Edit, MoreVertical, Timer, Play, Pause, RotateCcw } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface UserAccount {
@@ -143,6 +143,14 @@ export function WorkoutTab({
   const [currentExercise, setCurrentExercise] = useState<string>("")
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+  // タイマー関連の状態
+  const [isTimerModalOpen, setIsTimerModalOpen] = useState(false)
+  const [timerMinutes, setTimerMinutes] = useState(1)
+  const [timerSeconds, setTimerSeconds] = useState(0)
+  const [isTimerRunning, setIsTimerRunning] = useState(false)
+  const [remainingTime, setRemainingTime] = useState(60) // 秒単位
+  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null)
 
   const addExercise = () => {
     if (selectedWorkout) {
@@ -703,6 +711,73 @@ export function WorkoutTab({
     setSelectedDateForNewWorkout(null) // リセット
   }
 
+  // タイマー関連の関数
+  const startTimer = () => {
+    try {
+      const totalSeconds = timerMinutes * 60 + timerSeconds
+      setRemainingTime(totalSeconds)
+      setIsTimerRunning(true)
+      
+      const interval = setInterval(() => {
+        setRemainingTime(prev => {
+          if (prev <= 1) {
+            // タイマー終了
+            setIsTimerRunning(false)
+            clearInterval(interval)
+            setTimerInterval(null)
+            
+            // ポップアップ表示
+            alert('時間です！')
+            
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+      
+      setTimerInterval(interval)
+    } catch (error) {
+      console.error('Error starting timer:', error)
+    }
+  }
+
+  const pauseTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval)
+      setTimerInterval(null)
+    }
+    setIsTimerRunning(false)
+  }
+
+  const resetTimer = () => {
+    if (timerInterval) {
+      clearInterval(timerInterval)
+      setTimerInterval(null)
+    }
+    setIsTimerRunning(false)
+    const totalSeconds = timerMinutes * 60 + timerSeconds
+    setRemainingTime(totalSeconds)
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // コンポーネントがアンマウントされるときにタイマーをクリア
+  useEffect(() => {
+    return () => {
+      try {
+        if (timerInterval) {
+          clearInterval(timerInterval)
+        }
+      } catch (error) {
+        console.error('Error clearing timer:', error)
+      }
+    }
+  }, [timerInterval])
+
   return (
     <div className="h-full flex flex-col">
       {/* タブ切り替え */}
@@ -915,15 +990,16 @@ export function WorkoutTab({
       </div>
       
       {/* フローティング追加ボタン */}
+      <Button
+        onClick={() => setIsExerciseModalOpen(true)}
+        className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-900/50 z-10"
+        size="icon"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
+      
+      {/* 種目選択モーダル */}
       <Dialog open={isExerciseModalOpen} onOpenChange={setIsExerciseModalOpen}>
-        <DialogTrigger asChild>
-          <Button
-            className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-900/50 z-10"
-            size="icon"
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-        </DialogTrigger>
         <DialogContent className="bg-black border-red-900/50 text-white max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-red-400">種目を選択</DialogTitle>
@@ -967,6 +1043,14 @@ export function WorkoutTab({
                 : 'セットごとの重量や回数を入力してください'
               }
             </DialogDescription>
+            
+            {/* インラインタイマー */}
+            <div className="mt-4 p-3 bg-gray-900 rounded-lg border border-blue-500/30">
+              <div className="flex items-center justify-center gap-4">
+                <Timer className="h-5 w-5 text-blue-400" />
+                <TimerComponent />
+              </div>
+            </div>
           </DialogHeader>
           <ExerciseDetail 
             exerciseName={currentExercise} 
@@ -2272,6 +2356,114 @@ function ExerciseDetail({
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// インラインタイマーコンポーネント
+function TimerComponent() {
+  const [timerSeconds, setTimerSeconds] = useState(60)
+  const [remainingTime, setRemainingTime] = useState(60)
+  const [isRunning, setIsRunning] = useState(false)
+  const [isEditingTime, setIsEditingTime] = useState(false)
+  const [editValue, setEditValue] = useState('60')
+  const [interval, setIntervalRef] = useState<NodeJS.Timeout | null>(null)
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const startTimer = () => {
+    if (isRunning) {
+      // 停止
+      if (interval) {
+        clearInterval(interval)
+        setIntervalRef(null)
+      }
+      setIsRunning(false)
+    } else {
+      // 開始
+      setIsRunning(true)
+      const newInterval = setInterval(() => {
+        setRemainingTime(prev => {
+          if (prev <= 1) {
+            setIsRunning(false)
+            clearInterval(newInterval)
+            setIntervalRef(null)
+            alert('時間です！')
+            return timerSeconds // リセット
+          }
+          return prev - 1
+        })
+      }, 1000)
+      setIntervalRef(newInterval)
+    }
+  }
+
+  const handleTimeClick = () => {
+    if (!isRunning) {
+      setIsEditingTime(true)
+      setEditValue(timerSeconds.toString())
+    }
+  }
+
+  const handleTimeSubmit = () => {
+    const newTime = parseInt(editValue) || 60
+    setTimerSeconds(newTime)
+    setRemainingTime(newTime)
+    setIsEditingTime(false)
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleTimeSubmit()
+    }
+  }
+
+  // クリーンアップ
+  useEffect(() => {
+    return () => {
+      if (interval) {
+        clearInterval(interval)
+      }
+    }
+  }, [interval])
+
+  return (
+    <div className="flex items-center gap-3">
+      {isEditingTime ? (
+        <input
+          type="number"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleTimeSubmit}
+          onKeyPress={handleKeyPress}
+          className="w-16 px-2 py-1 text-center bg-gray-800 border border-gray-600 rounded text-white text-sm"
+          autoFocus
+        />
+      ) : (
+        <button
+          onClick={handleTimeClick}
+          className="text-2xl font-bold text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+          disabled={isRunning}
+        >
+          {formatTime(remainingTime)}
+        </button>
+      )}
+      
+      <Button
+        onClick={startTimer}
+        size="sm"
+        className={`${
+          isRunning 
+            ? 'bg-red-600 hover:bg-red-700' 
+            : 'bg-green-600 hover:bg-green-700'
+        } text-white`}
+      >
+        {isRunning ? 'STOP' : 'START'}
+      </Button>
     </div>
   )
 }

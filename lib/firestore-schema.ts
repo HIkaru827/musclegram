@@ -76,6 +76,14 @@ export interface FirestoreNotification {
   createdAt: string
 }
 
+export interface FirestoreDaysGoal {
+  id: string
+  userId: string
+  monthlyTarget: number
+  createdAt: string
+  updatedAt: string
+}
+
 // Firestoreコレクション名
 export const COLLECTIONS = {
   USERS: 'users',
@@ -84,5 +92,6 @@ export const COLLECTIONS = {
   COMMENTS: 'comments',
   FOLLOWS: 'follows',
   CUSTOM_EXERCISES: 'custom_exercises',
-  NOTIFICATIONS: 'notifications'
+  NOTIFICATIONS: 'notifications',
+  DAYS_GOALS: 'days_goals'
 } as const

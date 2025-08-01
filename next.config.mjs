@@ -52,12 +52,6 @@ const nextConfig = {
       },
     ]
   },
-  
-  // 実験的機能
-  experimental: {
-    optimizeCss: true,
-    scrollRestoration: true,
-  },
 }
 
 export default nextConfig
