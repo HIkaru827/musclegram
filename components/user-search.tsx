@@ -141,10 +141,10 @@ export function UserSearch({ isOpen, onClose, currentUser, onUserClick }: UserSe
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-black border-red-900/50 text-white max-w-md max-h-[80vh] overflow-hidden">
+      <DialogContent className="bg-gradient-to-br from-white via-gray-50 to-white border border-red-200/30 text-gray-900 max-w-md max-h-[80vh] overflow-hidden rounded-2xl shadow-2xl shadow-red-500/10 backdrop-blur-xl">
         <DialogHeader>
-          <DialogTitle className="text-red-400 flex items-center gap-2">
-            <Search className="h-5 w-5" />
+          <DialogTitle className="text-2xl font-bold text-black flex items-center gap-2">
+            <Search className="h-6 w-6" />
             ユーザー検索
           </DialogTitle>
         </DialogHeader>
@@ -152,48 +152,48 @@ export function UserSearch({ isOpen, onClose, currentUser, onUserClick }: UserSe
         <div className="space-y-4">
           {/* 検索入力 */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
               type="text"
               placeholder="ユーザー名または表示名で検索..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-gray-900 border-red-900/50 text-white placeholder-gray-400"
+              className="pl-12 bg-white border-red-300 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg transition-all duration-300 text-base py-3"
             />
           </div>
 
           {/* 検索結果 */}
           <div className="max-h-96 overflow-y-auto space-y-2">
             {isLoading ? (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-gray-600">
                 検索中...
               </div>
             ) : searchResults.length > 0 ? (
               searchResults.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center gap-3 p-3 bg-gray-900/50 hover:bg-gray-900/70 rounded-lg border border-red-900/30 transition-colors"
+                  className="flex items-center gap-4 p-4 bg-white hover:bg-red-50 rounded-xl border border-red-200 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02]"
                 >
                   {/* ユーザー情報 */}
                   <button
                     onClick={() => handleUserClick(user)}
                     className="flex items-center gap-3 flex-1 text-left"
                   >
-                    <Avatar className="h-12 w-12 border-2 border-red-500">
+                    <Avatar className="h-14 w-14 border-2 border-red-300 shadow-lg">
                       <AvatarImage src={user.avatar} alt={user.displayName} />
-                      <AvatarFallback className="bg-red-950 text-red-200">
+                      <AvatarFallback className="bg-red-100 text-red-600 font-bold">
                         {user.displayName.substring(0, 2)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm text-white truncate">
+                      <h3 className="font-bold text-base text-gray-900 truncate">
                         {user.displayName}
                       </h3>
-                      <p className="text-xs text-gray-400 truncate">
+                      <p className="text-sm text-gray-700 font-medium truncate">
                         @{user.username}
                       </p>
                       {user.bio && (
-                        <p className="text-xs text-gray-500 truncate mt-1">
+                        <p className="text-sm text-gray-600 truncate mt-1">
                           {user.bio}
                         </p>
                       )}
@@ -206,32 +206,32 @@ export function UserSearch({ isOpen, onClose, currentUser, onUserClick }: UserSe
                       variant="ghost"
                       size="sm"
                       onClick={() => handleFollow(user)}
-                      className={`h-8 w-8 p-0 transition-colors ${
+                      className={`h-10 w-10 p-0 rounded-lg transition-all duration-300 hover:scale-110 ${
                         following.has(user.id)
-                          ? 'text-red-400 hover:text-red-300 hover:bg-red-950/30'
-                          : 'text-green-400 hover:text-green-300 hover:bg-green-950/30'
+                          ? 'text-red-600 hover:text-red-700 hover:bg-red-100'
+                          : 'text-green-600 hover:text-green-700 hover:bg-green-100'
                       }`}
                       title={following.has(user.id) ? "アンフォロー" : "フォロー"}
                     >
                       {following.has(user.id) ? 
-                        <UserMinus className="h-4 w-4" /> : 
-                        <UserPlus className="h-4 w-4" />
+                        <UserMinus className="h-5 w-5" /> : 
+                        <UserPlus className="h-5 w-5" />
                       }
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleMessage(user)}
-                      className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-950/30"
+                      className="h-10 w-10 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-all duration-300 hover:scale-110"
                       title="メッセージ"
                     >
-                      <MessageCircle className="h-4 w-4" />
+                      <MessageCircle className="h-5 w-5" />
                     </Button>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-gray-600">
                 <User className="h-12 w-12 mx-auto mb-4 text-gray-600" />
                 <p className="text-sm">
                   {searchQuery.trim() ? 

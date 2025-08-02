@@ -106,9 +106,9 @@ export function NotificationsModal({ isOpen, onClose, currentUser }: Notificatio
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-black border-red-900/50 text-white max-w-md max-h-[80vh] overflow-hidden">
+      <DialogContent className="bg-gradient-to-br from-white via-gray-50 to-white border border-red-200/30 text-gray-900 max-w-md max-h-[80vh] overflow-hidden rounded-2xl shadow-2xl shadow-red-500/10 backdrop-blur-xl">
         <DialogHeader>
-          <DialogTitle className="text-red-400 flex items-center gap-2">
+          <DialogTitle className="text-2xl font-bold text-black flex items-center gap-2">
             <Bell className="h-5 w-5" />
             通知
           </DialogTitle>
@@ -118,23 +118,23 @@ export function NotificationsModal({ isOpen, onClose, currentUser }: Notificatio
           {/* 通知リスト */}
           <div className="max-h-96 overflow-y-auto space-y-2">
             {isLoading ? (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-gray-600">
                 読み込み中...
               </div>
             ) : notifications.length > 0 ? (
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                  className={`flex items-start gap-3 p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] ${
                     notification.isRead 
-                      ? 'bg-gray-900/30 border-red-900/20' 
-                      : 'bg-red-950/20 border-red-900/50'
+                      ? 'bg-white hover:bg-red-50 border-red-200 shadow-sm hover:shadow-md' 
+                      : 'bg-red-50 hover:bg-red-100 border-red-300 shadow-md hover:shadow-lg'
                   }`}
                 >
                   {/* アバター */}
-                  <Avatar className="h-10 w-10 border-2 border-red-500 flex-shrink-0">
+                  <Avatar className="h-12 w-12 border-2 border-red-300 shadow-lg flex-shrink-0">
                     <AvatarImage src={notification.fromUserAvatar} alt={notification.fromUserName} />
-                    <AvatarFallback className="bg-red-950 text-red-200">
+                    <AvatarFallback className="bg-red-100 text-red-600 font-bold">
                       {notification.fromUserName.substring(0, 2)}
                     </AvatarFallback>
                   </Avatar>
@@ -144,13 +144,13 @@ export function NotificationsModal({ isOpen, onClose, currentUser }: Notificatio
                     <div className="flex items-start gap-2">
                       {getNotificationIcon(notification.type)}
                       <div className="flex-1">
-                        <p className="text-sm text-white">
-                          <span className="font-semibold text-red-300">
+                        <p className="text-sm text-gray-900">
+                          <span className="font-bold text-black">
                             {notification.fromUserName}
                           </span>
                           {notification.message}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-gray-500 font-medium mt-1">
                           {formatDate(notification.createdAt)}
                         </p>
                       </div>
@@ -159,8 +159,8 @@ export function NotificationsModal({ isOpen, onClose, currentUser }: Notificatio
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-gray-400">
-                <Bell className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+              <div className="text-center py-8 text-gray-600">
+                <Bell className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                 <p className="text-sm">通知はありません</p>
               </div>
             )}

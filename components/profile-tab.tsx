@@ -398,16 +398,16 @@ export function ProfileTab({
             </DialogTrigger>
             <DialogContent className="bg-gradient-to-br from-white via-gray-50 to-white border border-red-200/30 text-gray-900 max-w-md rounded-2xl shadow-2xl shadow-red-500/10 backdrop-blur-xl">
               <DialogHeader>
-                <DialogTitle className="text-2xl font-bold text-red-600">プロフィール設定</DialogTitle>
+                <DialogTitle className="text-2xl font-bold text-black">プロフィール設定</DialogTitle>
               </DialogHeader>
               <form className="space-y-4">
                 {/* アバター写真アップロード */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-red-600">プロフィール写真</Label>
+                  <Label className="text-sm font-semibold text-black">プロフィール写真</Label>
                   <div className="flex items-center gap-4">
                     <Avatar className="h-16 w-16 border-2 border-red-300 shadow-lg">
                       <AvatarImage src={tempProfile.avatar} alt="プロフィール" />
-                      <AvatarFallback className="bg-red-100 text-red-600">
+                      <AvatarFallback className="bg-gray-100 text-black">
                         {tempProfile.displayName.substring(0, 2)}
                       </AvatarFallback>
                     </Avatar>
@@ -431,7 +431,7 @@ export function ProfileTab({
 
                 {/* 表示名 */}
                 <div className="space-y-2">
-                  <Label htmlFor="displayName" className="text-sm font-semibold text-red-600">表示名</Label>
+                  <Label htmlFor="displayName" className="text-sm font-semibold text-black">表示名</Label>
                   <Input
                     id="displayName"
                     value={tempProfile.displayName}
@@ -443,9 +443,9 @@ export function ProfileTab({
 
                 {/* ユーザーネーム */}
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-sm font-semibold text-red-600">ユーザーネーム</Label>
+                  <Label htmlFor="username" className="text-sm font-semibold text-black">ユーザーネーム</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-500 font-semibold">@</span>
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-semibold">@</span>
                     <Input
                       id="username"
                       value={tempProfile.username}
@@ -458,7 +458,7 @@ export function ProfileTab({
 
                 {/* 自己紹介 */}
                 <div className="space-y-2">
-                  <Label htmlFor="bio" className="text-sm font-semibold text-red-600">自己紹介</Label>
+                  <Label htmlFor="bio" className="text-sm font-semibold text-black">自己紹介</Label>
                   <Textarea
                     id="bio"
                     value={tempProfile.bio}
@@ -553,7 +553,7 @@ export function ProfileTab({
                         <div className="flex items-start gap-3 mb-3">
                           <Avatar className="h-10 w-10 border border-red-500">
                             <AvatarImage src={userProfile.avatar} alt={userProfile.displayName} />
-                            <AvatarFallback className="bg-red-100 text-red-600">
+                            <AvatarFallback className="bg-gray-100 text-black">
                               {userProfile.displayName.substring(0, 2)}
                             </AvatarFallback>
                           </Avatar>

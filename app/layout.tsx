@@ -57,11 +57,20 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://musclegram.app',
   },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'MuscleGram',
+  },
   other: {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'apple-mobile-web-app-status-bar-style': 'default',
+    'apple-mobile-web-app-title': 'MuscleGram',
     'theme-color': '#dc2626',
+    'msapplication-TileColor': '#dc2626',
+    'msapplication-tap-highlight': 'no',
   },
 }
 
@@ -73,14 +82,29 @@ export default function RootLayout({
   return (
     <html lang="ja" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
         <meta name="format-detection" content="telephone=no" />
+        
+        {/* PWA icons */}
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        
+        {/* PWA manifest and configuration */}
         <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#dc2626" />
+        <meta name="background-color" content="#ffffff" />
         <meta name="msapplication-TileColor" content="#dc2626" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
+        
+        {/* PWA meta tags */}
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="MuscleGram" />
+        <meta name="application-name" content="MuscleGram" />
+        <meta name="msapplication-tap-highlight" content="no" />
         
         {/* プリロード重要リソース */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

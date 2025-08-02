@@ -119,11 +119,11 @@ export function OtherProfileTab({ targetUser, currentUser, onBack }: OtherProfil
           variant="ghost"
           size="sm"
           onClick={onBack}
-          className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-300 hover:scale-110"
+          className="p-2 text-black hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-300 hover:scale-110"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">プロフィール</h1>
+        <h1 className="text-xl font-bold text-black">プロフィール</h1>
       </div>
 
       {/* プロフィール情報 */}
@@ -131,24 +131,24 @@ export function OtherProfileTab({ targetUser, currentUser, onBack }: OtherProfil
         <div className="flex items-center gap-4 mb-4">
           <Avatar className="h-20 w-20 border-3 border-red-300 shadow-xl shadow-red-500/20">
             <AvatarImage src={targetUser.avatar} alt={targetUser.displayName} />
-            <AvatarFallback className="bg-red-100 text-red-600 font-bold">
+            <AvatarFallback className="bg-gray-100 text-black font-bold">
               {targetUser.displayName.substring(0, 2)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-red-700">{targetUser.displayName}</h2>
-            <p className="text-sm text-red-500 font-medium">@{targetUser.username}</p>
+            <h2 className="text-xl font-bold text-black">{targetUser.displayName}</h2>
+            <p className="text-sm text-gray-600 font-medium">@{targetUser.username}</p>
             <div className="flex gap-6 mt-3 text-sm">
               <div>
-                <span className="font-bold text-red-600">{userExercises.length}</span> 
+                <span className="font-bold text-black">{userExercises.length}</span> 
                 <span className="text-gray-700"> 投稿</span>
               </div>
               <div>
-                <span className="font-bold text-red-600">{followersCount}</span>
+                <span className="font-bold text-black">{followersCount}</span>
                 <span className="text-gray-700"> フォロワー</span>
               </div>
               <div>
-                <span className="font-bold text-red-600">{followingCount}</span>
+                <span className="font-bold text-black">{followingCount}</span>
                 <span className="text-gray-700"> フォロー中</span>
               </div>
             </div>

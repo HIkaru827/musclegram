@@ -212,7 +212,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
 
             <TabsContent value="login" className="space-y-4 mt-6">
               <div className="space-y-2">
-                <Label htmlFor="login-email" className="text-red-400">メールアドレス</Label>
+                <Label htmlFor="login-email" className="text-black">メールアドレス</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
@@ -227,7 +227,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="login-password" className="text-red-400">パスワード</Label>
+                <Label htmlFor="login-password" className="text-black">パスワード</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
@@ -265,7 +265,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
 
             <TabsContent value="register" className="space-y-4 mt-6">
               <div className="space-y-2">
-                <Label htmlFor="register-email" className="text-red-400">メールアドレス</Label>
+                <Label htmlFor="register-email" className="text-black">メールアドレス</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
@@ -280,7 +280,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="register-display-name" className="text-red-400">表示名</Label>
+                <Label htmlFor="register-display-name" className="text-black">表示名</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
@@ -295,7 +295,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="register-username" className="text-red-400">ユーザーネーム</Label>
+                <Label htmlFor="register-username" className="text-black">ユーザーネーム</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">@</span>
                   <Input
@@ -310,7 +310,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="register-password" className="text-red-400">パスワード</Label>
+                <Label htmlFor="register-password" className="text-black">パスワード</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input

@@ -783,12 +783,12 @@ export function WorkoutTab({
       {/* タブ切り替え */}
       <div className="flex-shrink-0">
         <Tabs defaultValue="current" className="w-full">
-          <div className="p-2 md:p-4 border-b border-red-900/50">
+          <div className="p-2 md:p-4 border-b border-red-200 bg-white/80 backdrop-blur-sm">
             <TabsList className="w-full bg-transparent h-10 md:h-12 lg:h-14">
-              <TabsTrigger value="current" className="flex-1 bg-white text-red-500 border border-red-500 data-[state=active]:bg-red-500 data-[state=active]:text-white text-xs">
+              <TabsTrigger value="current" className="flex-1 bg-white text-red-600 border border-red-300 hover:bg-red-50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 text-sm font-medium transition-all duration-300 rounded-lg">
                 今日の記録
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex-1 bg-white text-red-500 border border-red-500 data-[state=active]:bg-red-500 data-[state=active]:text-white text-xs">
+              <TabsTrigger value="history" className="flex-1 bg-white text-red-600 border border-red-300 hover:bg-red-50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 text-sm font-medium transition-all duration-300 rounded-lg">
                 履歴
               </TabsTrigger>
             </TabsList>
@@ -797,17 +797,17 @@ export function WorkoutTab({
           <div className="h-[calc(100vh-200px)]">
             <TabsContent value="current" className="m-0 h-full">
               <ScrollArea className="h-full">
-                <div className="p-4 md:p-6 lg:p-8 space-y-4">
+                <div className="p-4 md:p-6 lg:p-8 space-y-4 bg-gradient-to-br from-gray-50 to-white min-h-full">
                   <div className="space-y-4">
             {exercises.length > 0 ? (
               exercises.map((exercise) => (
-                <div key={exercise.id} className="border border-red-900/30 rounded-md p-3 bg-white relative">
+                <div key={exercise.id} className="border border-red-200 rounded-xl p-4 bg-white shadow-lg shadow-red-500/5 hover:shadow-red-500/10 transition-all duration-300 hover:scale-[1.02] relative">
                   {/* 右上のメニューボタン */}
                   <div className="absolute top-2 right-2">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 text-gray-500 hover:text-red-400 hover:bg-red-50"
+                      className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all duration-300 hover:scale-110"
                       onClick={(e) => {
                         e.stopPropagation()
                         setActiveMenuId(activeMenuId === exercise.id ? null : exercise.id)
@@ -818,9 +818,9 @@ export function WorkoutTab({
                     
                     {/* ドロップダウンメニュー */}
                     {activeMenuId === exercise.id && (
-                      <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[100px]">
+                      <div className="absolute right-0 top-8 bg-white border border-red-200 rounded-xl shadow-xl shadow-red-500/10 z-10 min-w-[120px] backdrop-blur-sm">
                         <button
-                          className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 text-gray-700 flex items-center gap-2"
+                          className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 text-gray-800 flex items-center gap-2 first:rounded-t-xl transition-all duration-300"
                           onClick={(e) => {
                             e.stopPropagation()
                             handleEditExercise(exercise)
@@ -830,7 +830,7 @@ export function WorkoutTab({
                           編集
                         </button>
                         <button
-                          className="w-full px-3 py-2 text-left text-xs hover:bg-gray-50 text-red-600 flex items-center gap-2"
+                          className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2 last:rounded-b-xl transition-all duration-300"
                           onClick={(e) => {
                             e.stopPropagation()
                             handleDeleteExercise(exercise.id)
@@ -912,25 +912,25 @@ export function WorkoutTab({
             
             <TabsContent value="history" className="m-0 h-full">
               <ScrollArea className="h-full">
-                <div className="p-4 bg-white">
+                <div className="p-4 bg-gradient-to-br from-gray-50 to-white min-h-full">
                   {/* カレンダーヘッダー */}
                   <div className="flex items-center justify-between mb-4">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => navigateMonth('prev')}
-                      className="p-2 hover:bg-gray-100"
+                      className="p-2 hover:bg-red-50 rounded-lg transition-all duration-300 hover:scale-110"
                     >
                       <ChevronLeft className="h-4 w-4 text-red-500" />
                     </Button>
-                    <h3 className="text-lg font-semibold text-red-500">
+                    <h3 className="text-xl font-bold text-red-600">
                       {currentDate.getFullYear()}年 {monthNames[currentDate.getMonth()]}
                     </h3>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => navigateMonth('next')}
-                      className="p-2 hover:bg-gray-100"
+                      className="p-2 hover:bg-red-50 rounded-lg transition-all duration-300 hover:scale-110"
                     >
                       <ChevronRightIcon className="h-4 w-4 text-red-500" />
                     </Button>
@@ -1000,10 +1000,10 @@ export function WorkoutTab({
       
       {/* 種目選択モーダル */}
       <Dialog open={isExerciseModalOpen} onOpenChange={setIsExerciseModalOpen}>
-        <DialogContent className="bg-gradient-to-br from-gray-900 via-black to-gray-900 border border-red-500/30 text-white max-w-md max-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl shadow-red-500/20 backdrop-blur-xl">
+        <DialogContent className="bg-gradient-to-br from-white via-gray-50 to-white border border-red-200/30 text-gray-900 max-w-md max-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl shadow-red-500/10 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-red-400 to-red-500 bg-clip-text text-transparent">種目を選択</DialogTitle>
-            <DialogDescription className="text-gray-300 text-sm">
+            <DialogTitle className="text-2xl font-bold text-black">種目を選択</DialogTitle>
+            <DialogDescription className="text-gray-600 text-sm">
               トレーニングする種目を選んでください
             </DialogDescription>
           </DialogHeader>
@@ -1034,10 +1034,10 @@ export function WorkoutTab({
           setSelectedDateForNewWorkout(null)
         }
       }}>
-        <DialogContent className="bg-gradient-to-br from-gray-900 via-black to-gray-900 border border-red-500/30 text-white max-w-md max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl shadow-red-500/20 backdrop-blur-xl">
+        <DialogContent className="bg-gradient-to-br from-white via-gray-50 to-white border border-red-200/30 text-gray-900 max-w-md max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl shadow-red-500/10 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-red-400 to-red-500 bg-clip-text text-transparent">{currentExercise}</DialogTitle>
-            <DialogDescription className="text-gray-300 text-sm">
+            <DialogTitle className="text-2xl font-bold text-black">{currentExercise}</DialogTitle>
+            <DialogDescription className="text-gray-600 text-sm">
               {selectedDateForNewWorkout 
                 ? `${selectedDateForNewWorkout.toLocaleDateString('ja-JP')}の記録として保存されます`
                 : 'セットごとの重量や回数を入力してください'
@@ -1045,9 +1045,9 @@ export function WorkoutTab({
             </DialogDescription>
             
             {/* インラインタイマー */}
-            <div className="mt-4 p-4 bg-gradient-to-br from-blue-950/50 to-indigo-950/50 rounded-xl border border-blue-400/30 shadow-lg backdrop-blur-sm">
+            <div className="mt-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200/50 shadow-lg backdrop-blur-sm">
               <div className="flex items-center justify-center gap-4">
-                <Timer className="h-6 w-6 text-blue-400 animate-pulse" />
+                <Timer className="h-6 w-6 text-blue-600 animate-pulse" />
                 <TimerComponent />
               </div>
             </div>
@@ -1063,10 +1063,10 @@ export function WorkoutTab({
 
       {/* 編集モーダル */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="bg-black border-red-900/50 text-white max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gradient-to-br from-white via-gray-50 to-white border border-red-200/30 text-gray-900 max-w-md max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl shadow-red-500/10 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle className="text-red-400">{editingExercise?.name}</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-2xl font-bold text-black">{editingExercise?.name}</DialogTitle>
+            <DialogDescription className="text-gray-600 text-sm">
               トレーニングデータを編集してください
             </DialogDescription>
           </DialogHeader>
@@ -1092,8 +1092,8 @@ export function WorkoutTab({
       {/* 削除確認ダイアログ */}
       {exerciseDeleteConfirmation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white border border-red-900/50 rounded-lg p-6 max-w-sm mx-4">
-            <h3 className="text-lg font-semibold text-red-500 mb-4">削除確認</h3>
+          <div className="bg-white border border-red-200/50 rounded-xl p-6 max-w-sm mx-4 shadow-2xl shadow-red-500/10">
+            <h3 className="text-lg font-bold text-black mb-4">削除磺認</h3>
             <p className="text-gray-700 mb-6">
               この記録を削除しますか？<br />
               マイページとみんなの投稿からも削除されます。
@@ -1164,23 +1164,23 @@ export function WorkoutTab({
           loadExercises()
         }
       }}>
-        <DialogContent className="bg-black border-red-900/50 text-white max-w-md max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-gradient-to-br from-white via-gray-50 to-white border border-red-200/30 text-gray-900 max-w-md max-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl shadow-red-500/10 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle className="text-red-400">{selectedDate}のトレーニング記録</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-2xl font-bold text-black">{selectedDate}のトレーニング記録</DialogTitle>
+            <DialogDescription className="text-gray-600 text-sm">
               この日に記録したトレーニングです
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {selectedDateExercises.length > 0 ? (
               selectedDateExercises.map((exercise) => (
-                <div key={exercise.id} className="border border-red-900/30 rounded-md p-3 bg-gray-900/50 relative">
+                <div key={exercise.id} className="border border-red-200/50 rounded-xl p-4 bg-white hover:bg-red-50 shadow-md hover:shadow-lg transition-all duration-300 relative">
                   {/* 編集ボタン */}
                   <div className="absolute top-2 right-2">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-400 hover:bg-red-950/30"
+                      className="h-6 w-6 p-0 text-gray-600 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all duration-300"
                       onClick={() => handleEditExercise(exercise)}
                     >
                       <Edit className="h-4 w-4" />
@@ -1191,19 +1191,19 @@ export function WorkoutTab({
                     <div className="w-1/2">
                       {/* 項目名、時間、セット数 */}
                       <div className="mb-3">
-                        <h3 className="font-semibold text-sm text-red-400">{exercise.name}</h3>
-                        <p className="text-xs text-gray-400">{exercise.timestamp}</p>
-                        <p className="text-xs text-gray-500 mt-1">{exercise.sets.length}セット</p>
+                        <h3 className="font-bold text-sm text-black">{exercise.name}</h3>
+                        <p className="text-xs text-gray-500 font-medium">{exercise.timestamp}</p>
+                        <p className="text-xs text-gray-600 mt-1">{exercise.sets.length}セット</p>
                       </div>
                       
                       {/* メモ表示 */}
                       {exercise.memo && (
-                        <div className="mb-3 p-2 bg-gray-800/50 rounded-md border border-red-900/30">
+                        <div className="mb-3 p-2 bg-red-50 rounded-lg border border-red-200/50">
                           <div className="flex items-center gap-1 mb-1">
-                            <FileText className="h-3 w-3 text-red-400" />
-                            <span className="text-xs text-red-400">メモ</span>
+                            <FileText className="h-3 w-3 text-gray-600" />
+                            <span className="text-xs text-gray-600 font-medium">メモ</span>
                           </div>
-                          <p className="text-xs text-gray-300">{exercise.memo}</p>
+                          <p className="text-xs text-gray-700">{exercise.memo}</p>
                         </div>
                       )}
 
@@ -1211,15 +1211,15 @@ export function WorkoutTab({
                       <div className="space-y-2">
                         {exercise.sets.map((set, setIndex) => (
                           <div key={setIndex} className="flex items-center gap-2">
-                            <div className="w-6 text-xs text-center text-red-400 font-semibold">{setIndex + 1}</div>
+                            <div className="w-6 text-xs text-center text-black font-bold">{setIndex + 1}</div>
                             <div className="w-20">
-                              <div className="bg-gray-700 rounded px-2 py-1 text-center text-xs text-white">
+                              <div className="bg-red-100 border border-red-300 rounded-lg px-2 py-1 text-center text-xs text-gray-900 font-medium">
                                 {set.weight || '0'}kg
                               </div>
                             </div>
-                            <div className="text-xs text-gray-400">×</div>
+                            <div className="text-xs text-black font-bold">×</div>
                             <div className="w-20">
-                              <div className="bg-gray-700 rounded px-2 py-1 text-center text-xs text-white">
+                              <div className="bg-red-100 border border-red-300 rounded-lg px-2 py-1 text-center text-xs text-gray-900 font-medium">
                                 {set.reps || '0'}回
                               </div>
                             </div>
@@ -1244,14 +1244,14 @@ export function WorkoutTab({
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-gray-400">
-                <Dumbbell className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+              <div className="text-center py-8 text-gray-600">
+                <Dumbbell className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                 <p className="text-sm">この日の記録はありません</p>
               </div>
             )}
             
             {/* この日に記録を追加ボタン */}
-            <div className="pt-4 border-t border-red-900/30">
+            <div className="pt-4 border-t border-red-200/50">
               <Button
                 onClick={() => {
                   if (selectedDate) {
