@@ -112,44 +112,44 @@ export function OtherProfileTab({ targetUser, currentUser, onBack }: OtherProfil
   }
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-gradient-to-br from-gray-50 to-white">
       {/* ヘッダー */}
-      <div className="flex items-center gap-3 p-4 border-b border-red-900/50">
+      <div className="flex items-center gap-3 p-4 border-b border-red-200 bg-white/80 backdrop-blur-sm">
         <Button
           variant="ghost"
           size="sm"
           onClick={onBack}
-          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50"
+          className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-300 hover:scale-110"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-lg font-bold text-red-500">プロフィール</h1>
+        <h1 className="text-xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">プロフィール</h1>
       </div>
 
       {/* プロフィール情報 */}
-      <div className="p-4 border-b border-red-900/50">
+      <div className="p-6 border-b border-red-200 bg-white/50 backdrop-blur-sm">
         <div className="flex items-center gap-4 mb-4">
-          <Avatar className="h-16 w-16 border-2 border-red-500">
+          <Avatar className="h-20 w-20 border-3 border-red-300 shadow-xl shadow-red-500/20">
             <AvatarImage src={targetUser.avatar} alt={targetUser.displayName} />
-            <AvatarFallback className="bg-red-950 text-red-200">
+            <AvatarFallback className="bg-red-100 text-red-600 font-bold">
               {targetUser.displayName.substring(0, 2)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-black">{targetUser.displayName}</h2>
-            <p className="text-sm text-gray-600">@{targetUser.username}</p>
-            <div className="flex gap-4 mt-2 text-xs">
+            <h2 className="text-xl font-bold text-red-700">{targetUser.displayName}</h2>
+            <p className="text-sm text-red-500 font-medium">@{targetUser.username}</p>
+            <div className="flex gap-6 mt-3 text-sm">
               <div>
-                <span className="font-bold text-black">{userExercises.length}</span> 
-                <span className="text-gray-600"> 投稿</span>
+                <span className="font-bold text-red-600">{userExercises.length}</span> 
+                <span className="text-gray-700"> 投稿</span>
               </div>
               <div>
-                <span className="font-bold text-black">{followersCount}</span>
-                <span className="text-gray-600"> フォロワー</span>
+                <span className="font-bold text-red-600">{followersCount}</span>
+                <span className="text-gray-700"> フォロワー</span>
               </div>
               <div>
-                <span className="font-bold text-black">{followingCount}</span>
-                <span className="text-gray-600"> フォロー中</span>
+                <span className="font-bold text-red-600">{followingCount}</span>
+                <span className="text-gray-700"> フォロー中</span>
               </div>
             </div>
           </div>
@@ -158,7 +158,7 @@ export function OtherProfileTab({ targetUser, currentUser, onBack }: OtherProfil
         {/* 自己紹介 */}
         {targetUser.bio && (
           <div className="mb-4">
-            <p className="text-sm text-gray-700">{targetUser.bio}</p>
+            <p className="text-sm text-gray-800 leading-relaxed">{targetUser.bio}</p>
           </div>
         )}
 
@@ -166,10 +166,10 @@ export function OtherProfileTab({ targetUser, currentUser, onBack }: OtherProfil
         {targetUser.id !== currentUser.id && (
           <Button
             onClick={handleFollow}
-            className={`w-full ${
+            className={`w-full transition-all duration-300 hover:scale-105 rounded-xl font-bold py-3 shadow-lg ${
               isFollowing
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'bg-green-600 hover:bg-green-700 text-white'
+                ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-red-500/25'
+                : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-green-500/25'
             }`}
           >
             {isFollowing ? (

@@ -1262,7 +1262,7 @@ export function WorkoutTab({
                     setIsExerciseModalOpen(true)
                   }
                 }}
-                className="w-full bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500"
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-2xl shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 rounded-xl font-bold text-lg py-3"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 この日に記録を追加
@@ -1334,7 +1334,7 @@ function ExerciseSelector({
   onDeleteConfirmation?: (confirm: boolean) => void
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 p-1">
 {Object.entries(exercisesByBodyPart).map(([bodyPart, exercises]) => {
         const customExercisesForBodyPart = customExercises?.[bodyPart] || []
         const deletedExercises = customExercises?.['_deleted'] || []
@@ -1343,7 +1343,7 @@ function ExerciseSelector({
         
         return (
           <div key={bodyPart} className="space-y-2">
-            <h3 className="font-semibold text-red-400 border-b border-red-900/50 pb-1">
+            <h3 className="font-bold text-red-600 border-b border-red-200 pb-2 text-lg">
               {bodyPart}
             </h3>
             <div className="space-y-1">
@@ -1352,13 +1352,13 @@ function ExerciseSelector({
                 const isEditing = editingExercise?.bodyPart === bodyPart && editingExercise?.oldName === exercise
                 
                 return isEditing ? (
-                  <div key={exercise} className="space-y-2 p-2 bg-gray-900/50 rounded border border-red-900/30">
+                  <div key={exercise} className="space-y-3 p-4 bg-red-50 rounded-xl border border-red-200 shadow-sm">
                     <Input
                       type="text"
                       value={editingExercise.newName}
                       onChange={(e) => onEditNameChange?.(e.target.value)}
                       placeholder="種目名を編集"
-                      className="bg-black border-red-900/50 text-white"
+                      className="bg-white border-red-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg"
                       autoFocus
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -1372,14 +1372,14 @@ function ExerciseSelector({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 border-gray-600 text-gray-400 hover:bg-gray-800"
+                        className="flex-1 border-red-300 text-red-600 hover:bg-red-50 bg-white rounded-lg transition-all duration-300"
                         onClick={onEditCancel}
                       >
                         キャンセル
                       </Button>
                       <Button
                         size="sm"
-                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                        className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 rounded-lg"
                         onClick={onEditSubmit}
                       >
                         更新
@@ -1390,7 +1390,7 @@ function ExerciseSelector({
                   <div key={exercise} className="flex items-center gap-1">
                     <Button
                       variant="ghost"
-                      className="flex-1 justify-start text-left hover:bg-red-950/30 hover:text-red-300"
+                      className="flex-1 justify-start text-left text-gray-800 hover:bg-red-50 hover:text-red-600 transition-all duration-300 hover:scale-105 rounded-lg"
                       onClick={() => onSelect(exercise)}
                     >
                       {exercise}
@@ -1398,7 +1398,7 @@ function ExerciseSelector({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 text-gray-400 hover:text-red-400 hover:bg-red-950/30"
+                      className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all duration-300 hover:scale-110"
                       onClick={() => onEditExercise?.(bodyPart, exercise)}
                     >
                       <Edit className="h-3 w-3" />
@@ -1408,13 +1408,13 @@ function ExerciseSelector({
               })}
               
               {isAddingCustom?.bodyPart === bodyPart ? (
-                <div className="space-y-2 p-2 bg-gray-900/50 rounded border border-red-900/30">
+                <div className="space-y-3 p-4 bg-red-50 rounded-xl border border-red-200 shadow-sm">
                   <Input
                     type="text"
                     value={customExerciseName || ""}
                     onChange={(e) => onCustomNameChange?.(e.target.value)}
                     placeholder="新しい種目名を入力"
-                    className="bg-black border-red-900/50 text-white"
+                    className="bg-white border-red-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -1428,14 +1428,14 @@ function ExerciseSelector({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 border-gray-600 text-gray-400 hover:bg-gray-800"
+                      className="flex-1 border-red-300 text-red-600 hover:bg-red-50 bg-white rounded-lg transition-all duration-300"
                       onClick={onCustomCancel}
                     >
                       キャンセル
                     </Button>
                     <Button
                       size="sm"
-                      className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                      className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 rounded-lg"
                       onClick={onCustomSubmit}
                     >
                       追加
@@ -1445,7 +1445,7 @@ function ExerciseSelector({
               ) : (
                 <Button
                   variant="ghost"
-                  className="w-full justify-start text-left text-gray-400 hover:bg-gray-800 hover:text-white"
+                  className="w-full justify-start text-left text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-300 hover:scale-105 rounded-lg border border-red-200 hover:border-red-300"
                   onClick={() => onAddCustom?.(bodyPart)}
                 >
                   項目を追加
@@ -1458,22 +1458,22 @@ function ExerciseSelector({
 
       {/* 削除確認ダイアログ */}
       {deleteConfirmation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-900 border border-red-900/50 rounded-lg p-6 max-w-sm mx-4">
-            <h3 className="text-lg font-semibold text-red-400 mb-4">削除確認</h3>
-            <p className="text-gray-300 mb-6">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white border border-red-200 rounded-2xl p-6 max-w-sm mx-4 shadow-2xl shadow-red-500/20">
+            <h3 className="text-xl font-bold text-red-600 mb-4">削除確認</h3>
+            <p className="text-gray-700 mb-6">
               削除してもいいですか？削除するとデータも削除されてしまいます。
             </p>
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                className="flex-1 border-gray-600 text-gray-400 hover:bg-gray-800"
+                className="flex-1 border-red-300 text-red-600 hover:bg-red-50 bg-white rounded-lg transition-all duration-300"
                 onClick={() => onDeleteConfirmation?.(false)}
               >
                 いいえ
               </Button>
               <Button
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 rounded-lg"
                 onClick={() => onDeleteConfirmation?.(true)}
               >
                 はい
@@ -1722,9 +1722,9 @@ function ExerciseEditDetail({
       {/* セット入力 */}
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="text-xs text-gray-400">セット</div>
-          <div className="text-xs text-gray-400">重さ</div>
-          <div className="text-xs text-gray-400">回数</div>
+          <div className="text-sm font-semibold text-red-600">セット</div>
+          <div className="text-sm font-semibold text-red-600">重さ</div>
+          <div className="text-sm font-semibold text-red-600">回数</div>
         </div>
         
         {sets.map((set, index) => (
@@ -1732,10 +1732,10 @@ function ExerciseEditDetail({
             <div className="text-center">
               <button
                 onClick={() => handleSetClick(set.id, index)}
-                className={`w-8 h-8 rounded-full text-white font-bold text-xs transition-colors ${
+                className={`w-10 h-10 rounded-full font-bold text-sm transition-all duration-300 ${
                   sets.length <= 1 
-                    ? 'bg-gray-600 cursor-not-allowed' 
-                    : 'bg-red-600 hover:bg-red-700 hover:scale-105'
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25 hover:shadow-red-600/30 hover:scale-110'
                 }`}
                 disabled={sets.length <= 1}
               >
@@ -1755,7 +1755,7 @@ function ExerciseEditDetail({
                   }}
                   onBlur={handleInputSubmit}
                   onKeyDown={handleKeyPress}
-                  className="h-8 bg-black border-red-900/50 text-center"
+                  className="h-10 bg-white border-red-300 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg transition-all duration-300"
                   placeholder="重さ"
                   inputMode="decimal"
                   autoFocus
@@ -1763,7 +1763,7 @@ function ExerciseEditDetail({
               ) : (
                 <button
                   onClick={() => handleFieldClick(set.id, 'weight', set.weight)}
-                  className="w-full h-8 bg-gray-800 hover:bg-gray-700 rounded border border-red-900/50 text-white"
+                  className="w-full h-10 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 text-gray-800 transition-all duration-300 hover:scale-105"
                 >
                   {set.weight || "0"}
                 </button>
@@ -1782,7 +1782,7 @@ function ExerciseEditDetail({
                   }}
                   onBlur={handleInputSubmit}
                   onKeyDown={handleKeyPress}
-                  className="h-8 bg-black border-red-900/50 text-center"
+                  className="h-10 bg-white border-red-300 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg transition-all duration-300"
                   placeholder="回数"
                   inputMode="numeric"
                   autoFocus
@@ -1790,7 +1790,7 @@ function ExerciseEditDetail({
               ) : (
                 <button
                   onClick={() => handleFieldClick(set.id, 'reps', set.reps)}
-                  className="w-full h-8 bg-gray-800 hover:bg-gray-700 rounded border border-red-900/50 text-white"
+                  className="w-full h-10 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 text-gray-800 transition-all duration-300 hover:scale-105"
                 >
                   {set.reps || "0"}
                 </button>
@@ -1805,7 +1805,7 @@ function ExerciseEditDetail({
             variant="outline"
             size="sm"
             onClick={addSet}
-            className="border-red-500 text-red-500 hover:bg-red-950 hover:text-white"
+            className="border-red-300 text-red-600 bg-white hover:bg-red-50 hover:text-red-700 transition-all duration-300 hover:scale-105 rounded-lg shadow-sm"
           >
             <Plus className="h-4 w-4 mr-1" />
             追加
@@ -1818,8 +1818,8 @@ function ExerciseEditDetail({
         {/* 写真アップロード */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Camera className="h-4 w-4 text-red-400" />
-            <span className="text-sm text-red-400">写真</span>
+            <Camera className="h-5 w-5 text-red-600" />
+            <span className="text-sm font-semibold text-red-600">写真</span>
           </div>
           <div className="flex gap-2">
             <input
@@ -1831,14 +1831,14 @@ function ExerciseEditDetail({
             />
             <label
               htmlFor="edit-photo-upload"
-              className="flex-1 p-2 bg-gray-800 hover:bg-gray-700 rounded border border-red-900/50 text-center text-xs cursor-pointer text-gray-300 hover:text-white transition-colors"
+              className="flex-1 p-3 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 text-center text-sm cursor-pointer text-red-600 hover:text-red-700 transition-all duration-300 hover:scale-105"
             >
               写真を選択
             </label>
             {photo && (
               <button
                 onClick={() => setPhoto("")}
-                className="px-3 py-2 bg-red-900/30 hover:bg-red-900/50 rounded border border-red-900/50 text-xs text-red-400"
+                className="px-4 py-3 bg-red-500 hover:bg-red-600 rounded-lg border-none text-sm text-white transition-all duration-300 hover:scale-105 shadow-lg shadow-red-500/25"
               >
                 削除
               </button>
@@ -1849,7 +1849,7 @@ function ExerciseEditDetail({
               <img 
                 src={photo} 
                 alt="プレビュー" 
-                className="w-full h-32 object-cover rounded-md border border-red-900/30"
+                className="w-full h-32 object-cover rounded-xl border border-red-200 shadow-sm"
               />
             </div>
           )}
@@ -1858,14 +1858,14 @@ function ExerciseEditDetail({
         {/* メモ入力 */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-red-400" />
-            <span className="text-sm text-red-400">メモ</span>
+            <FileText className="h-5 w-5 text-red-600" />
+            <span className="text-sm font-semibold text-red-600">メモ</span>
           </div>
           <textarea
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             placeholder="メモを入力してください..."
-            className="w-full p-2 bg-black border border-red-900/50 rounded text-white text-sm resize-none"
+            className="w-full p-3 bg-white border border-red-300 rounded-lg text-gray-900 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300"
             rows={3}
           />
         </div>
@@ -2107,19 +2107,19 @@ function ExerciseDetail({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-1">
       {/* 前回の履歴 */}
-      <div className="bg-gray-900/50 rounded-lg p-4 border border-red-900/30">
-        <h3 className="text-xs text-red-400 mb-2">前回の記録 ({previousHistory.date})</h3>
+      <div className="bg-red-50 rounded-xl p-4 border border-red-200 shadow-sm">
+        <h3 className="text-sm font-semibold text-red-600 mb-2">前回の記録 ({previousHistory.date})</h3>
         <div className="space-y-1">
           {previousHistory.sets.length > 0 ? (
             previousHistory.sets.map((set: any, index: number) => (
-              <div key={index} className="text-xs text-gray-400">
+              <div key={index} className="text-sm text-gray-700">
                 セット{index + 1}: {set.weight}kg × {set.reps}回
               </div>
             ))
           ) : (
-            <div className="text-xs text-gray-400">
+            <div className="text-sm text-gray-600">
               {exerciseName}の記録はまだありません
             </div>
           )}
@@ -2129,9 +2129,9 @@ function ExerciseDetail({
       {/* セット入力 */}
       <div className="space-y-4">
         <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="text-xs text-gray-400">セット</div>
-          <div className="text-xs text-gray-400">重さ</div>
-          <div className="text-xs text-gray-400">回数</div>
+          <div className="text-sm font-semibold text-red-600">セット</div>
+          <div className="text-sm font-semibold text-red-600">重さ</div>
+          <div className="text-sm font-semibold text-red-600">回数</div>
         </div>
         
         {sets.map((set, index) => (
@@ -2139,10 +2139,10 @@ function ExerciseDetail({
             <div className="text-center">
               <button
                 onClick={() => handleSetClick(set.id, index)}
-                className={`w-8 h-8 rounded-full text-white font-bold text-xs transition-colors ${
+                className={`w-10 h-10 rounded-full font-bold text-sm transition-all duration-300 ${
                   sets.length <= 1 
-                    ? 'bg-gray-600 cursor-not-allowed' 
-                    : 'bg-red-600 hover:bg-red-700 hover:scale-105'
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25 hover:shadow-red-600/30 hover:scale-110'
                 }`}
                 disabled={sets.length <= 1}
               >
@@ -2185,7 +2185,7 @@ function ExerciseDetail({
                       setInputValue(target.value)
                     }
                   }}
-                  className="h-8 bg-black border-red-900/50 text-center"
+                  className="h-10 bg-white border-red-300 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg transition-all duration-300"
                   placeholder="重さ"
                   inputMode="decimal"
                   autoFocus
@@ -2193,7 +2193,7 @@ function ExerciseDetail({
               ) : (
                 <button
                   onClick={() => handleFieldClick(set.id, 'weight', set.weight)}
-                  className="w-full h-8 bg-gray-800 hover:bg-gray-700 rounded border border-red-900/50 text-white"
+                  className="w-full h-10 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 text-gray-800 transition-all duration-300 hover:scale-105"
                 >
                   {set.weight || "0"}
                 </button>
@@ -2231,7 +2231,7 @@ function ExerciseDetail({
                       setInputValue(target.value)
                     }
                   }}
-                  className="h-8 bg-black border-red-900/50 text-center"
+                  className="h-10 bg-white border-red-300 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg transition-all duration-300"
                   placeholder="回数"
                   inputMode="numeric"
                   autoFocus
@@ -2239,7 +2239,7 @@ function ExerciseDetail({
               ) : (
                 <button
                   onClick={() => handleFieldClick(set.id, 'reps', set.reps)}
-                  className="w-full h-8 bg-gray-800 hover:bg-gray-700 rounded border border-red-900/50 text-white"
+                  className="w-full h-10 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 text-gray-800 transition-all duration-300 hover:scale-105"
                 >
                   {set.reps || "0"}
                 </button>
@@ -2254,7 +2254,7 @@ function ExerciseDetail({
             variant="outline"
             size="sm"
             onClick={addSet}
-            className="border-red-500 text-red-500 hover:bg-red-950 hover:text-white"
+            className="border-red-300 text-red-600 bg-white hover:bg-red-50 hover:text-red-700 transition-all duration-300 hover:scale-105 rounded-lg shadow-sm"
           >
             <Plus className="h-4 w-4 mr-1" />
             追加
@@ -2267,8 +2267,8 @@ function ExerciseDetail({
         {/* 写真アップロード */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Camera className="h-4 w-4 text-red-400" />
-            <span className="text-sm text-red-400">写真</span>
+            <Camera className="h-5 w-5 text-red-600" />
+            <span className="text-sm font-semibold text-red-600">写真</span>
           </div>
           <div className="flex gap-2">
             <input
@@ -2280,14 +2280,14 @@ function ExerciseDetail({
             />
             <label
               htmlFor="photo-upload"
-              className="flex-1 p-2 bg-gray-800 hover:bg-gray-700 rounded border border-red-900/50 text-center text-xs cursor-pointer text-gray-300 hover:text-white transition-colors"
+              className="flex-1 p-3 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 text-center text-sm cursor-pointer text-red-600 hover:text-red-700 transition-all duration-300 hover:scale-105"
             >
               写真を選択
             </label>
             {photo && (
               <button
                 onClick={() => setPhoto("")}
-                className="px-3 py-2 bg-red-900/30 hover:bg-red-900/50 rounded border border-red-900/50 text-xs text-red-400"
+                className="px-4 py-3 bg-red-500 hover:bg-red-600 rounded-lg border-none text-sm text-white transition-all duration-300 hover:scale-105 shadow-lg shadow-red-500/25"
               >
                 削除
               </button>
@@ -2298,7 +2298,7 @@ function ExerciseDetail({
               <img 
                 src={photo} 
                 alt="プレビュー" 
-                className="w-full h-32 object-cover rounded-md border border-red-900/30"
+                className="w-full h-32 object-cover rounded-xl border border-red-200 shadow-sm"
               />
             </div>
           )}
@@ -2307,14 +2307,14 @@ function ExerciseDetail({
         {/* メモ入力 */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-red-400" />
-            <span className="text-sm text-red-400">メモ</span>
+            <FileText className="h-5 w-5 text-red-600" />
+            <span className="text-sm font-semibold text-red-600">メモ</span>
           </div>
           <textarea
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             placeholder="メモを入力してください..."
-            className="w-full p-2 bg-black border border-red-900/50 rounded text-white text-sm resize-none"
+            className="w-full p-3 bg-white border border-red-300 rounded-lg text-gray-900 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300"
             rows={3}
           />
         </div>
@@ -2323,7 +2323,7 @@ function ExerciseDetail({
       {/* アクションボタン */}
       <div className="flex pt-4">
         <Button 
-          className="w-full bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500"
+          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-2xl shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 rounded-xl font-bold text-lg py-3"
           onClick={handlePost}
         >
           <Share2 className="h-4 w-4 mr-1" /> 投稿

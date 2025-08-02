@@ -396,18 +396,18 @@ export function ProfileTab({
                 <Settings className="h-3 w-3 md:h-4 md:w-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-black border-red-900/50 text-white max-w-md">
+            <DialogContent className="bg-gradient-to-br from-white via-gray-50 to-white border border-red-200/30 text-gray-900 max-w-md rounded-2xl shadow-2xl shadow-red-500/10 backdrop-blur-xl">
               <DialogHeader>
-                <DialogTitle className="text-red-400">プロフィール設定</DialogTitle>
+                <DialogTitle className="text-2xl font-bold text-red-600">プロフィール設定</DialogTitle>
               </DialogHeader>
               <form className="space-y-4">
                 {/* アバター写真アップロード */}
                 <div className="space-y-2">
-                  <Label className="text-sm text-red-400">プロフィール写真</Label>
+                  <Label className="text-sm font-semibold text-red-600">プロフィール写真</Label>
                   <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16 border-2 border-red-500">
+                    <Avatar className="h-16 w-16 border-2 border-red-300 shadow-lg">
                       <AvatarImage src={tempProfile.avatar} alt="プロフィール" />
-                      <AvatarFallback className="bg-red-950 text-red-200">
+                      <AvatarFallback className="bg-red-100 text-red-600">
                         {tempProfile.displayName.substring(0, 2)}
                       </AvatarFallback>
                     </Avatar>
@@ -421,7 +421,7 @@ export function ProfileTab({
                       />
                       <label
                         htmlFor="avatar-upload"
-                        className="inline-block px-3 py-2 bg-red-600 hover:bg-red-700 rounded text-sm cursor-pointer transition-colors"
+                        className="inline-block px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg text-sm text-white cursor-pointer transition-all duration-300 hover:scale-105 shadow-lg shadow-red-500/25"
                       >
                         写真を変更
                       </label>
@@ -431,26 +431,26 @@ export function ProfileTab({
 
                 {/* 表示名 */}
                 <div className="space-y-2">
-                  <Label htmlFor="displayName" className="text-sm text-red-400">表示名</Label>
+                  <Label htmlFor="displayName" className="text-sm font-semibold text-red-600">表示名</Label>
                   <Input
                     id="displayName"
                     value={tempProfile.displayName}
                     onChange={(e) => setTempProfile(prev => ({ ...prev, displayName: e.target.value }))}
-                    className="bg-gray-900 border-red-900/50 text-white"
+                    className="bg-white border-red-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg transition-all duration-300"
                     placeholder="表示名を入力"
                   />
                 </div>
 
                 {/* ユーザーネーム */}
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-sm text-red-400">ユーザーネーム</Label>
+                  <Label htmlFor="username" className="text-sm font-semibold text-red-600">ユーザーネーム</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">@</span>
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-500 font-semibold">@</span>
                     <Input
                       id="username"
                       value={tempProfile.username}
                       onChange={(e) => setTempProfile(prev => ({ ...prev, username: e.target.value }))}
-                      className="bg-gray-900 border-red-900/50 text-white pl-8"
+                      className="bg-white border-red-300 text-gray-900 pl-8 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg transition-all duration-300"
                       placeholder="ユーザーネームを入力"
                     />
                   </div>
@@ -458,31 +458,31 @@ export function ProfileTab({
 
                 {/* 自己紹介 */}
                 <div className="space-y-2">
-                  <Label htmlFor="bio" className="text-sm text-red-400">自己紹介</Label>
+                  <Label htmlFor="bio" className="text-sm font-semibold text-red-600">自己紹介</Label>
                   <Textarea
                     id="bio"
                     value={tempProfile.bio}
                     onChange={(e) => setTempProfile(prev => ({ ...prev, bio: e.target.value }))}
-                    className="bg-gray-900 border-red-900/50 text-white resize-none"
+                    className="bg-white border-red-300 text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg transition-all duration-300"
                     placeholder="自己紹介を入力"
                     rows={3}
                   />
                 </div>
 
                 {/* メールアドレス表示 */}
-                <div className="space-y-2 pt-2 border-t border-gray-700">
-                  <Label className="text-sm text-gray-500">登録メールアドレス</Label>
-                  <div className="text-sm text-gray-300 bg-gray-800/50 px-3 py-2 rounded border border-gray-700">
+                <div className="space-y-2 pt-4 border-t border-red-200">
+                  <Label className="text-sm font-semibold text-gray-600">登録メールアドレス</Label>
+                  <div className="text-sm text-gray-700 bg-gray-100 px-3 py-2 rounded-lg border border-gray-300">
                     {currentUser.email}
                   </div>
                 </div>
 
                 {/* ログアウトボタン */}
-                <div className="pt-2 border-t border-gray-700">
+                <div className="pt-4 border-t border-red-200">
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full border-red-600 text-red-400 hover:bg-red-600 hover:text-white flex items-center gap-2"
+                    className="w-full border-red-300 text-red-600 hover:bg-red-500 hover:text-white flex items-center gap-2 transition-all duration-300 hover:scale-105 rounded-lg"
                     onClick={() => {
                       if (onLogout) {
                         onLogout()
@@ -500,14 +500,14 @@ export function ProfileTab({
                   <Button
                     type="button"
                     variant="outline"
-                    className="flex-1 border-gray-600 text-gray-400 hover:bg-gray-800"
+                    className="flex-1 border-red-300 text-red-600 hover:bg-red-50 bg-white rounded-lg transition-all duration-300"
                     onClick={handleCancel}
                   >
                     キャンセル
                   </Button>
                   <Button
                     type="button"
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 rounded-lg"
                     onClick={handleSaveProfile}
                   >
                     保存
@@ -553,7 +553,7 @@ export function ProfileTab({
                         <div className="flex items-start gap-3 mb-3">
                           <Avatar className="h-10 w-10 border border-red-500">
                             <AvatarImage src={userProfile.avatar} alt={userProfile.displayName} />
-                            <AvatarFallback className="bg-red-950 text-red-200">
+                            <AvatarFallback className="bg-red-100 text-red-600">
                               {userProfile.displayName.substring(0, 2)}
                             </AvatarFallback>
                           </Avatar>
