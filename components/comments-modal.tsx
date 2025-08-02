@@ -266,7 +266,7 @@ export function CommentsModal({ isOpen, onClose, postId, currentUser, onUserClic
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white border-gray-200 text-black max-w-2xl max-h-[80vh] overflow-hidden">
+      <DialogContent className="bg-gradient-to-br from-white via-gray-50 to-white border border-red-200/30 text-black max-w-2xl max-h-[80vh] overflow-hidden rounded-2xl shadow-2xl shadow-red-500/10 backdrop-blur-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-black">
             <MessageCircle className="h-5 w-5" />

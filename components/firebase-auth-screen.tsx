@@ -184,27 +184,28 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-950 to-black flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-black border-red-900/50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-950 to-black flex items-center justify-center p-4 relative">
+      <div className="absolute inset-0 bg-black/30"></div>
+      <Card className="w-full max-w-md bg-gradient-to-br from-gray-900/95 via-black/95 to-gray-900/95 border border-red-500/30 shadow-2xl shadow-red-500/20 backdrop-blur-xl rounded-2xl relative z-10">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 bg-gradient-to-br from-red-600 to-red-800 rounded-full flex items-center justify-center">
-              <Dumbbell className="h-8 w-8 text-white" />
+            <div className="h-20 w-20 bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-2xl flex items-center justify-center shadow-2xl shadow-red-500/25 animate-pulse">
+              <Dumbbell className="h-10 w-10 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-red-400">MuscleGram</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-red-400 via-red-500 to-red-600 bg-clip-text text-transparent">MuscleGram</CardTitle>
+          <CardDescription className="text-gray-300">
             フィットネスログアプリ
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-gray-900">
-              <TabsTrigger value="login" className="data-[state=active]:bg-red-600 data-[state=active]:text-white">
+            <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl p-1">
+              <TabsTrigger value="login" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 rounded-lg transition-all duration-300">
                 ログイン
               </TabsTrigger>
-              <TabsTrigger value="register" className="data-[state=active]:bg-red-600 data-[state=active]:text-white">
+              <TabsTrigger value="register" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 rounded-lg transition-all duration-300">
                 新規登録
               </TabsTrigger>
             </TabsList>
@@ -220,7 +221,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
                     placeholder="your-email@example.com"
                     value={loginData.email}
                     onChange={(e) => setLoginData({...loginData, email: e.target.value})}
-                    className="pl-10 bg-gray-900 border-red-900/50 text-white"
+                    className="pl-10 bg-gradient-to-r from-gray-900/50 to-gray-800/50 border border-red-500/30 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 backdrop-blur-sm transition-all duration-300"
                   />
                 </div>
               </div>
@@ -235,7 +236,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
                     placeholder="パスワード"
                     value={loginData.password}
                     onChange={(e) => setLoginData({...loginData, password: e.target.value})}
-                    className="pl-10 pr-10 bg-gray-900 border-red-900/50 text-white"
+                    className="pl-10 pr-10 bg-gradient-to-r from-gray-900/50 to-gray-800/50 border border-red-500/30 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 backdrop-blur-sm transition-all duration-300"
                   />
                   <button
                     type="button"
@@ -248,7 +249,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
               </div>
 
               {errors && (
-                <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded border border-red-900/50">
+                <div className="text-red-400 text-sm bg-gradient-to-r from-red-900/30 to-red-800/30 p-3 rounded-xl border border-red-500/30 shadow-lg backdrop-blur-sm">
                   {errors}
                 </div>
               )}
@@ -256,7 +257,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
               <Button 
                 onClick={handleLogin}
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600"
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-2xl shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 active:scale-95 rounded-xl font-bold"
               >
                 {isLoading ? "ログイン中..." : "ログイン"}
               </Button>
@@ -273,7 +274,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
                     placeholder="your-email@example.com"
                     value={registerData.email}
                     onChange={(e) => setRegisterData({...registerData, email: e.target.value})}
-                    className="pl-10 bg-gray-900 border-red-900/50 text-white"
+                    className="pl-10 bg-gradient-to-r from-gray-900/50 to-gray-800/50 border border-red-500/30 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 backdrop-blur-sm transition-all duration-300"
                   />
                 </div>
               </div>
@@ -288,7 +289,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
                     placeholder="山田太郎"
                     value={registerData.displayName}
                     onChange={(e) => setRegisterData({...registerData, displayName: e.target.value})}
-                    className="pl-10 bg-gray-900 border-red-900/50 text-white"
+                    className="pl-10 bg-gradient-to-r from-gray-900/50 to-gray-800/50 border border-red-500/30 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 backdrop-blur-sm transition-all duration-300"
                   />
                 </div>
               </div>
@@ -318,7 +319,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
                     placeholder="6文字以上"
                     value={registerData.password}
                     onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
-                    className="pl-10 pr-10 bg-gray-900 border-red-900/50 text-white"
+                    className="pl-10 pr-10 bg-gradient-to-r from-gray-900/50 to-gray-800/50 border border-red-500/30 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 backdrop-blur-sm transition-all duration-300"
                   />
                   <button
                     type="button"
@@ -340,7 +341,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
                     placeholder="パスワードを再入力"
                     value={registerData.confirmPassword}
                     onChange={(e) => setRegisterData({...registerData, confirmPassword: e.target.value})}
-                    className="pl-10 pr-10 bg-gray-900 border-red-900/50 text-white"
+                    className="pl-10 pr-10 bg-gradient-to-r from-gray-900/50 to-gray-800/50 border border-red-500/30 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 backdrop-blur-sm transition-all duration-300"
                   />
                   <button
                     type="button"
@@ -353,7 +354,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
               </div>
 
               {errors && (
-                <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded border border-red-900/50">
+                <div className="text-red-400 text-sm bg-gradient-to-r from-red-900/30 to-red-800/30 p-3 rounded-xl border border-red-500/30 shadow-lg backdrop-blur-sm">
                   {errors}
                 </div>
               )}
@@ -361,7 +362,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
               <Button 
                 onClick={handleRegister}
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600"
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-2xl shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 active:scale-95 rounded-xl font-bold"
               >
                 {isLoading ? "登録中..." : "アカウント作成"}
               </Button>

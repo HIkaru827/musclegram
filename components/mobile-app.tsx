@@ -276,13 +276,17 @@ export function MobileApp() {
   // 認証チェック中は読み込み画面を表示
   if (isAuthChecking) {
     return (
-      <div className="flex flex-col h-full w-full overflow-hidden bg-gradient-to-br from-red-950 to-black items-center justify-center">
-        <div className="text-center">
-          <div className="h-16 w-16 bg-gradient-to-br from-red-600 to-red-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Dumbbell className="h-8 w-8 text-white animate-pulse" />
+      <div className="flex flex-col h-full w-full overflow-hidden bg-gradient-to-br from-slate-900 via-red-950 to-black items-center justify-center relative">
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="text-center relative z-10">
+          <div className="h-20 w-20 bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-red-500/25 animate-bounce">
+            <Dumbbell className="h-10 w-10 text-white animate-pulse" />
           </div>
-          <h1 className="text-2xl font-bold text-red-400 mb-2">MuscleGram</h1>
-          <p className="text-gray-400">読み込み中...</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-red-400 via-red-500 to-red-600 bg-clip-text text-transparent mb-3">MuscleGram</h1>
+          <div className="flex items-center gap-2 justify-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-500 border-t-transparent"></div>
+            <p className="text-gray-300 text-sm">読み込み中...</p>
+          </div>
         </div>
       </div>
     )
@@ -294,7 +298,7 @@ export function MobileApp() {
   }
 
   return (
-    <div className="flex flex-col h-screen w-full overflow-hidden bg-white text-black">
+    <div className="flex flex-col h-screen w-full overflow-hidden bg-gradient-to-br from-gray-50 to-white text-black">
       {/* メインコンテンツ - フル高さでスクロール可能 */}
       {viewingUser ? (
         // 他のユーザーのプロフィール表示
@@ -304,14 +308,14 @@ export function MobileApp() {
             headerVisible ? 'translate-y-0' : '-translate-y-full'
           } flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4`}>
             <div>
-              <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
+              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">MuscleGram</h1>
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsSearchOpen(true)}
-                className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
               >
                 <Search className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
@@ -320,12 +324,12 @@ export function MobileApp() {
                   variant="outline"
                   size="sm"
                   onClick={handleNotificationClick}
-                  className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                 >
                   <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
                 {unreadNotificationCount > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                  <div className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg animate-pulse">
                     {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
                   </div>
                 )}
@@ -352,14 +356,14 @@ export function MobileApp() {
                 headerVisible ? 'translate-y-0' : '-translate-y-full'
               } flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4`}>
                 <div>
-                  <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
+                  <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">MuscleGram</h1>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsSearchOpen(true)}
-                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
@@ -368,12 +372,12 @@ export function MobileApp() {
                       variant="outline"
                       size="sm"
                       onClick={handleNotificationClick}
-                      className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                     >
                       <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                     {unreadNotificationCount > 0 && (
-                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                      <div className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg animate-pulse">
                         {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
                       </div>
                     )}
@@ -397,14 +401,14 @@ export function MobileApp() {
                 headerVisible ? 'translate-y-0' : '-translate-y-full'
               } flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4`}>
                 <div>
-                  <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
+                  <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">MuscleGram</h1>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsSearchOpen(true)}
-                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
@@ -413,12 +417,12 @@ export function MobileApp() {
                       variant="outline"
                       size="sm"
                       onClick={handleNotificationClick}
-                      className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                     >
                       <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                     {unreadNotificationCount > 0 && (
-                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                      <div className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg animate-pulse">
                         {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
                       </div>
                     )}
@@ -435,14 +439,14 @@ export function MobileApp() {
                 headerVisible ? 'translate-y-0' : '-translate-y-full'
               } flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4`}>
                 <div>
-                  <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
+                  <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">MuscleGram</h1>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsSearchOpen(true)}
-                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
@@ -451,12 +455,12 @@ export function MobileApp() {
                       variant="outline"
                       size="sm"
                       onClick={handleNotificationClick}
-                      className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                     >
                       <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                     {unreadNotificationCount > 0 && (
-                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                      <div className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg animate-pulse">
                         {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
                       </div>
                     )}
@@ -473,14 +477,14 @@ export function MobileApp() {
                 headerVisible ? 'translate-y-0' : '-translate-y-full'
               } flex items-center justify-between border-b border-red-800 bg-gradient-to-r from-red-950 to-red-800 p-3 sm:p-4`}>
                 <div>
-                  <h1 className="text-base sm:text-lg font-bold text-red-500">MuscleGram</h1>
+                  <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">MuscleGram</h1>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsSearchOpen(true)}
-                    className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
@@ -489,12 +493,12 @@ export function MobileApp() {
                       variant="outline"
                       size="sm"
                       onClick={handleNotificationClick}
-                      className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                     >
                       <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                     {unreadNotificationCount > 0 && (
-                      <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                      <div className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg animate-pulse">
                         {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
                       </div>
                     )}
@@ -519,7 +523,7 @@ export function MobileApp() {
       )}
 
       {/* 下部ナビゲーション */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-red-950 to-red-800 border-t border-red-800 h-16">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-red-200/30 shadow-2xl shadow-red-500/10 h-16">
         <div className="flex h-full">
           <button
             onClick={() => {
@@ -527,8 +531,10 @@ export function MobileApp() {
               setViewingUser(null)
               localStorage.setItem('musclegram_activeTab', 'home')
             }}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 text-white transition-colors ${
-              activeTab === "home" ? "bg-red-700" : "hover:bg-red-800"
+            className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-300 ${
+              activeTab === "home" 
+                ? "text-red-600 bg-gradient-to-t from-red-50 to-transparent scale-105" 
+                : "text-gray-500 hover:text-red-500 hover:bg-red-50/50 hover:scale-105"
             }`}
           >
             <Home className="h-5 w-5" />
@@ -540,8 +546,10 @@ export function MobileApp() {
               setViewingUser(null)
               localStorage.setItem('musclegram_activeTab', 'workout')
             }}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 text-white transition-colors ${
-              activeTab === "workout" ? "bg-red-700" : "hover:bg-red-800"
+            className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-300 ${
+              activeTab === "workout" 
+                ? "text-red-600 bg-gradient-to-t from-red-50 to-transparent scale-105" 
+                : "text-gray-500 hover:text-red-500 hover:bg-red-50/50 hover:scale-105"
             }`}
           >
             <Dumbbell className="h-5 w-5" />
@@ -553,8 +561,10 @@ export function MobileApp() {
               setViewingUser(null)
               localStorage.setItem('musclegram_activeTab', 'analytics')
             }}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 text-white transition-colors ${
-              activeTab === "analytics" ? "bg-red-700" : "hover:bg-red-800"
+            className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-300 ${
+              activeTab === "analytics" 
+                ? "text-red-600 bg-gradient-to-t from-red-50 to-transparent scale-105" 
+                : "text-gray-500 hover:text-red-500 hover:bg-red-50/50 hover:scale-105"
             }`}
           >
             <BarChart3 className="h-5 w-5" />
@@ -566,8 +576,10 @@ export function MobileApp() {
               setViewingUser(null)
               localStorage.setItem('musclegram_activeTab', 'profile')
             }}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 text-white transition-colors ${
-              activeTab === "profile" ? "bg-red-700" : "hover:bg-red-800"
+            className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-300 ${
+              activeTab === "profile" 
+                ? "text-red-600 bg-gradient-to-t from-red-50 to-transparent scale-105" 
+                : "text-gray-500 hover:text-red-500 hover:bg-red-50/50 hover:scale-105"
             }`}
           >
             <User className="h-5 w-5" />

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback, memo } from "react"
 import { firestorePosts, firestoreCustomExercises } from "@/lib/firestore-utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -992,7 +992,7 @@ export function WorkoutTab({
       {/* フローティング追加ボタン */}
       <Button
         onClick={() => setIsExerciseModalOpen(true)}
-        className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 shadow-lg shadow-red-900/50 z-10"
+        className="fixed bottom-20 right-4 h-16 w-16 rounded-2xl bg-gradient-to-br from-red-500 via-red-600 to-red-700 hover:from-red-600 hover:via-red-700 hover:to-red-800 shadow-2xl shadow-red-500/30 hover:shadow-red-600/40 z-10 transition-all duration-300 hover:scale-110 active:scale-95"
         size="icon"
       >
         <Plus className="h-6 w-6" />
@@ -1000,10 +1000,10 @@ export function WorkoutTab({
       
       {/* 種目選択モーダル */}
       <Dialog open={isExerciseModalOpen} onOpenChange={setIsExerciseModalOpen}>
-        <DialogContent className="bg-black border-red-900/50 text-white max-w-md max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-gradient-to-br from-gray-900 via-black to-gray-900 border border-red-500/30 text-white max-w-md max-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl shadow-red-500/20 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle className="text-red-400">種目を選択</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-red-400 to-red-500 bg-clip-text text-transparent">種目を選択</DialogTitle>
+            <DialogDescription className="text-gray-300 text-sm">
               トレーニングする種目を選んでください
             </DialogDescription>
           </DialogHeader>
@@ -1034,10 +1034,10 @@ export function WorkoutTab({
           setSelectedDateForNewWorkout(null)
         }
       }}>
-        <DialogContent className="bg-black border-red-900/50 text-white max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gradient-to-br from-gray-900 via-black to-gray-900 border border-red-500/30 text-white max-w-md max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl shadow-red-500/20 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle className="text-red-400">{currentExercise}</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-red-400 to-red-500 bg-clip-text text-transparent">{currentExercise}</DialogTitle>
+            <DialogDescription className="text-gray-300 text-sm">
               {selectedDateForNewWorkout 
                 ? `${selectedDateForNewWorkout.toLocaleDateString('ja-JP')}の記録として保存されます`
                 : 'セットごとの重量や回数を入力してください'
@@ -1045,9 +1045,9 @@ export function WorkoutTab({
             </DialogDescription>
             
             {/* インラインタイマー */}
-            <div className="mt-4 p-3 bg-gray-900 rounded-lg border border-blue-500/30">
+            <div className="mt-4 p-4 bg-gradient-to-br from-blue-950/50 to-indigo-950/50 rounded-xl border border-blue-400/30 shadow-lg backdrop-blur-sm">
               <div className="flex items-center justify-center gap-4">
-                <Timer className="h-5 w-5 text-blue-400" />
+                <Timer className="h-6 w-6 text-blue-400 animate-pulse" />
                 <TimerComponent />
               </div>
             </div>
@@ -2432,7 +2432,7 @@ function TimerComponent() {
   }, [interval])
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-4">
       {isEditingTime ? (
         <input
           type="number"
@@ -2440,13 +2440,17 @@ function TimerComponent() {
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleTimeSubmit}
           onKeyPress={handleKeyPress}
-          className="w-16 px-2 py-1 text-center bg-gray-800 border border-gray-600 rounded text-white text-sm"
+          className="w-20 px-3 py-2 text-center bg-gradient-to-br from-blue-900/50 to-indigo-900/50 border border-blue-400/50 rounded-xl text-white text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-400/50 backdrop-blur-sm"
           autoFocus
         />
       ) : (
         <button
           onClick={handleTimeClick}
-          className="text-2xl font-bold text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+          className={`text-3xl font-bold transition-all duration-300 cursor-pointer px-2 py-1 rounded-lg ${
+            isRunning 
+              ? 'text-red-400 animate-pulse' 
+              : 'text-blue-400 hover:text-blue-300 hover:scale-105'
+          }`}
           disabled={isRunning}
         >
           {formatTime(remainingTime)}
@@ -2458,9 +2462,9 @@ function TimerComponent() {
         size="sm"
         className={`${
           isRunning 
-            ? 'bg-red-600 hover:bg-red-700' 
-            : 'bg-green-600 hover:bg-green-700'
-        } text-white`}
+            ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/25' 
+            : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg shadow-green-500/25'
+        } text-white font-bold px-4 py-2 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 border-none`}
       >
         {isRunning ? 'STOP' : 'START'}
       </Button>
