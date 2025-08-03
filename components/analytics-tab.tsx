@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { firestorePosts, firestoreDaysGoals } from "@/lib/firestore-utils"
+import { firestorePosts, firestoreDaysGoals, firestoreCustomExercises } from "@/lib/firestore-utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Progress } from "@/components/ui/progress"
@@ -72,6 +72,8 @@ interface Goal {
 
 // 総合的な種目リストを取得する関数
 const getAllExercises = (customExercises: {[key: string]: string[]} = {}) => {
+  // カスタム種目が正しい形式でない場合は空オブジェクトに置き換え
+  const safeCustomExercises = customExercises && typeof customExercises === 'object' ? customExercises : {}
   const allExercises: string[] = []
   
   // 既定の種目を追加（workout-tab.tsxからコピー）
@@ -92,14 +94,33 @@ const getAllExercises = (customExercises: {[key: string]: string[]} = {}) => {
   })
   
   // カスタム種目を追加
-  Object.values(customExercises).forEach(exercises => {
-    allExercises.push(...exercises)
+  Object.values(safeCustomExercises).forEach(exercises => {
+    if (Array.isArray(exercises)) {
+      allExercises.push(...exercises)
+    }
   })
   
   return [...new Set(allExercises)] // 重複を除去
 }
 
 export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
+  // 有効数字2桁でフォーマットする関数
+  const formatToTwoSignificantDigits = (num: number): string => {
+    if (num === 0) return '0'
+    if (num < 0.01) return '0.01'
+    
+    const magnitude = Math.floor(Math.log10(Math.abs(num)))
+    const factor = Math.pow(10, 1 - magnitude)
+    const rounded = Math.round(num * factor) / factor
+    
+    if (rounded >= 100) {
+      return Math.round(rounded).toString()
+    } else if (rounded >= 10) {
+      return rounded.toFixed(1)
+    } else {
+      return rounded.toFixed(2)
+    }
+  }
   const [analyticsData, setAnalyticsData] = useState({
     thisMonthDays: 0,
     lastMonthComparison: 0,
@@ -152,6 +173,82 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
 
   const [volumeChartData, setVolumeChartData] = useState<VolumeChartData[]>([])
   const [volumePeriod, setVolumePeriod] = useState<VolumePeriod>('1month')
+
+  // 1RMチャート関連のstate
+  const [oneRMChartData, setOneRMChartData] = useState<any[]>([])
+  const [selectedExercise, setSelectedExercise] = useState<string>('')
+  const [availableExercisesForChart, setAvailableExercisesForChart] = useState<{[bodyPart: string]: string[]}>({})
+
+  // 部位別の種目分類（記録画面の分類と統一）
+  const exerciseBodyPartMapForAnalytics: { [key: string]: string } = {
+    // 胸
+    'ベンチプレス': '胸',
+    'ペックフライ': '胸',
+    'チェストプレス': '胸',
+    'インクラインベンチプレス': '胸',
+    'ダンベルプレス': '胸',
+    'インクラインダンベルプレス': '胸',
+    'ダンベルフライ': '胸',
+    'インクラインダンベルフライ': '胸',
+    'ディップス': '胸',
+    'プッシュアップ': '胸',
+    
+    // 背中
+    'デッドリフト': '背中',
+    'ラットプルダウン': '背中',
+    'プーリーロー': '背中',
+    'ベントオーバーロー': '背中',
+    'チンニング': '背中',
+    'ワンハンドロー': '背中',
+    'シーテッドロー': '背中',
+    'Tバーロー': '背中',
+    
+    // 脚
+    'スクワット': '脚',
+    'スミスマシン・バーベルスクワット': '脚',
+    'レッグプレス': '脚',
+    'レッグエクステンション': '脚',
+    'レッグカール': '脚',
+    'カーフレイズ': '脚',
+    'ランジ': '脚',
+    'ブルガリアンスクワット': '脚',
+    
+    // 肩
+    'サイドレイズ': '肩',
+    'ショルダープレス': '肩',
+    'フロントレイズ': '肩',
+    'リアレイズ': '肩',
+    'アップライトロー': '肩',
+    'シュラッグ': '肩',
+    
+    // 腕
+    'フィンガーロール': '腕',
+    'バーベルカール': '腕',
+    'アームカール': '腕',
+    'ダンベルカール': '腕',
+    'ハンマーカール': '腕',
+    'プリーチャーカール': '腕',
+    'トライセップスエクステンション': '腕',
+    'フレンチプレス': '腕',
+    'クローズグリップベンチプレス': '腕',
+    
+    // お尻
+    'ヒップスラスト': 'お尻',
+    
+    // 腹筋
+    'プランク': '腹筋',
+    '上体起こし': '腹筋',
+    'クランチ': '腹筋',
+    'シットアップ': '腹筋',
+    'レッグレイズ': '腹筋',
+    'ロシアンツイスト': '腹筋',
+    'マウンテンクライマー': '腹筋',
+    
+    // 有酸素運動
+    'ランニング': '有酸素運動',
+    'サイクリング': '有酸素運動',
+    'エリプティカル': '有酸素運動'
+  }
 
   // 重量・レップ数の成長分析（重量が向上した場合のみ、1種目につき1つまで、最大5個まで）
   const calculateStrengthProgress = (exercises: any[]): StrengthProgress[] => {
@@ -337,8 +434,44 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
     return data
   }
 
+  // 1RMチャートデータを計算
+  const calculateOneRMChartData = (exercises: any[], exerciseName: string) => {
+    if (!exerciseName) return []
+    
+    // 選択された種目のデータをフィルタリング
+    const exerciseData = exercises
+      .filter(ex => ex.name === exerciseName)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    
+    return exerciseData.map(exercise => {
+      // 各セッションの最大1RMを計算
+      const maxOneRM = exercise.sets.reduce((max: number, set: any) => {
+        const weight = parseFloat(set.weight) || 0
+        const reps = parseInt(set.reps) || 0
+        
+        if (weight > 0 && reps > 0) {
+          // 1RM計算: (重量 × 回数) / 40 + 重量
+          const oneRM = (weight * reps) / 40 + weight
+          return Math.max(max, oneRM)
+        }
+        return max
+      }, 0)
+      
+      // 日付をフォーマット
+      const date = new Date(exercise.timestamp)
+      const dateLabel = `${date.getMonth() + 1}/${date.getDate()}`
+      
+      return {
+        date: exercise.timestamp,
+        oneRM: parseFloat(formatToTwoSignificantDigits(maxOneRM)), // 有効数字2桁
+        label: dateLabel,
+        exerciseName
+      }
+    }).filter(data => data.oneRM > 0) // 1RMが0より大きいもののみ
+  }
+
   // 筋肉部位バランス（レーダーチャート風）
-  const calculateBodyPartBalance = (exercises: any[]): BodyPartBalance[] => {
+  const calculateBodyPartBalance = (exercises: any[], customExercises: {[key: string]: string[]} = {}): BodyPartBalance[] => {
     const bodyPartData = {
       '胸': 0,
       '背中': 0,
@@ -347,24 +480,51 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
       '腕': 0
     }
 
+    // 記録画面と同じ分類システムを使用
+    const exercisesByBodyPartBase = {
+      胸: ["ベンチプレス", "ペックフライ", "チェストプレス"],
+      背中: ["デッドリフト", "ラットプルダウン", "プーリーロー"],
+      脚: ["スクワット", "スミスマシン・バーベルスクワット", "レッグプレス"],
+      肩: ["サイドレイズ", "ショルダープレス", "フロントレイズ"],
+      腕: ["フィンガーロール", "バーベルカール", "アームカール"],
+      お尻: ["ヒップスラスト"],
+      腹筋: ["プランク", "上体起こし"],
+      有酸素運動: ["ランニング", "サイクリング", "エリプティカル"],
+    }
+
     exercises.forEach(exercise => {
-      const name = exercise.name.toLowerCase()
       const totalVolume = exercise.sets.reduce((total: number, set: any) => {
         const weight = parseInt(set.weight) || 0
         const reps = parseInt(set.reps) || 0
         return total + (weight * reps)
       }, 0)
 
-      if (name.includes('ベンチプレス') || name.includes('チェストプレス') || name.includes('胸')) {
-        bodyPartData['胸'] += totalVolume
-      } else if (name.includes('プルアップ') || name.includes('ラットプルダウン') || name.includes('背中') || name.includes('デッドリフト')) {
-        bodyPartData['背中'] += totalVolume
-      } else if (name.includes('スクワット') || name.includes('レッグプレス') || name.includes('脚')) {
-        bodyPartData['脚'] += totalVolume
-      } else if (name.includes('ショルダープレス') || name.includes('肩')) {
-        bodyPartData['肩'] += totalVolume
-      } else if (name.includes('カール') || name.includes('腕') || name.includes('トライセプス')) {
-        bodyPartData['腕'] += totalVolume
+      // 静的な分類マップをまずチェック
+      let bodyPart = exerciseBodyPartMapForAnalytics[exercise.name]
+      
+      // 見つからない場合は、記録画面の分類から動的に検索
+      if (!bodyPart) {
+        for (const [part, exerciseList] of Object.entries(exercisesByBodyPartBase)) {
+          if (exerciseList.includes(exercise.name)) {
+            bodyPart = part
+            break
+          }
+        }
+      }
+      
+      // カスタム種目の分類も確認
+      if (!bodyPart) {
+        for (const [part, exerciseList] of Object.entries(customExercises)) {
+          if (Array.isArray(exerciseList) && exerciseList.includes(exercise.name)) {
+            bodyPart = part
+            break
+          }
+        }
+      }
+
+      // レーダーチャートに含まれる部位のみ加算
+      if (bodyPart && bodyPartData.hasOwnProperty(bodyPart)) {
+        bodyPartData[bodyPart as keyof typeof bodyPartData] += totalVolume
       }
     })
 
@@ -618,10 +778,13 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
         const daysGoalData = await firestoreDaysGoals.get(currentUser.id)
         const monthlyTarget = daysGoalData?.monthlyTarget || 12
 
+        // 利用可能な種目リストを取得（カスタム種目も含む）
+        const customExercises = await firestoreCustomExercises.getByUser(currentUser.id) || {}
+
         const analytics = calculateAnalytics(exercises)
         const strength = calculateStrengthProgress(exercises)
         const volume = calculateVolumeData(exercises)
-        const bodyBalance = calculateBodyPartBalance(exercises)
+        const bodyBalance = calculateBodyPartBalance(exercises, customExercises)
         const frequency = calculateTrainingFrequency(exercises)
         const weeklyDays = calculateWeeklyWorkoutDays(exercises)
         const calculatedDaysGoal = calculateDaysGoal(exercises, monthlyTarget)
@@ -635,11 +798,79 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
         setWeeklyWorkoutDays(weeklyDays)
         setDaysGoal(calculatedDaysGoal)
         setVolumeChartData(chartData)
-
-        // 利用可能な種目リストを取得（カスタム種目も含む）
-        const customExercises = {} // TODO: カスタム種目をFirestoreから取得
         const allExercises = getAllExercises(customExercises)
         setAvailableExercises(allExercises)
+
+        // 記録画面と同じ分類システムを使用
+        const exercisesByBodyPartBase = {
+          胸: ["ベンチプレス", "ペックフライ", "チェストプレス"],
+          背中: ["デッドリフト", "ラットプルダウン", "プーリーロー"],
+          脚: ["スクワット", "スミスマシン・バーベルスクワット", "レッグプレス"],
+          肩: ["サイドレイズ", "ショルダープレス", "フロントレイズ"],
+          腕: ["フィンガーロール", "バーベルカール", "アームカール"],
+          お尻: ["ヒップスラスト"],
+          腹筋: ["プランク", "上体起こし"],
+          有酸素運動: ["ランニング", "サイクリング", "エリプティカル"],
+        }
+
+        // 1RMチャート用の種目リストを部位別に取得（実際に記録のある種目のみ）
+        const exercisesWithRecords = [...new Set(exercises.map(ex => ex.name))]
+        const exercisesByBodyPart: {[bodyPart: string]: string[]} = {}
+        
+        // 部位別に分類
+        exercisesWithRecords.forEach(exerciseName => {
+          // 静的な分類マップをまずチェック
+          let bodyPart = exerciseBodyPartMapForAnalytics[exerciseName]
+          
+          // 見つからない場合は、記録画面の分類から動的に検索
+          if (!bodyPart) {
+            for (const [part, exerciseList] of Object.entries(exercisesByBodyPartBase)) {
+              if (exerciseList.includes(exerciseName)) {
+                bodyPart = part
+                break
+              }
+            }
+          }
+          
+          // カスタム種目の分類も確認
+          if (!bodyPart) {
+            for (const [part, exerciseList] of Object.entries(customExercises)) {
+              if (Array.isArray(exerciseList) && exerciseList.includes(exerciseName)) {
+                bodyPart = part
+                break
+              }
+            }
+          }
+          
+          // どこにも分類されない場合は「その他」
+          if (!bodyPart) {
+            bodyPart = 'その他'
+          }
+          
+          if (!exercisesByBodyPart[bodyPart]) {
+            exercisesByBodyPart[bodyPart] = []
+          }
+          exercisesByBodyPart[bodyPart].push(exerciseName)
+        })
+        
+        // 各部位内でソート
+        Object.keys(exercisesByBodyPart).forEach(bodyPart => {
+          exercisesByBodyPart[bodyPart].sort()
+        })
+        
+        setAvailableExercisesForChart(exercisesByBodyPart)
+        
+        // デフォルトで最初の種目を選択
+        const firstBodyPart = Object.keys(exercisesByBodyPart)[0]
+        if (firstBodyPart && exercisesByBodyPart[firstBodyPart].length > 0 && !selectedExercise) {
+          setSelectedExercise(exercisesByBodyPart[firstBodyPart][0])
+        }
+        
+        // 選択された種目の1RMチャートデータを計算
+        if (selectedExercise) {
+          const chartData = calculateOneRMChartData(exercises, selectedExercise)
+          setOneRMChartData(chartData)
+        }
 
         // カスタム目標を読み込み
         const savedCustomGoals = localStorage.getItem(`customGoals_${currentUser.id}`)
@@ -674,6 +905,29 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
       window.removeEventListener('globalPostsUpdated', handlePostUpdate)
     }
   }, [customGoals])
+
+  // 選択された種目が変更されたときに1RMチャートデータを更新
+  useEffect(() => {
+    const loadOneRMData = async () => {
+      if (selectedExercise) {
+        try {
+          const userPosts = await firestorePosts.getByUser(currentUser.id)
+          const exercises = userPosts.map((post: any) => ({
+            ...post.exercise,
+            postId: post.id,
+            timestamp: post.timestamp
+          }))
+          
+          const chartData = calculateOneRMChartData(exercises, selectedExercise)
+          setOneRMChartData(chartData)
+        } catch (error) {
+          console.error('Failed to load 1RM data:', error)
+        }
+      }
+    }
+    
+    loadOneRMData()
+  }, [selectedExercise, currentUser.id])
 
   // 五角形レーダーチャートコンポーネント
   const RadarChart = ({ data }: { data: BodyPartBalance[] }) => {
@@ -888,10 +1142,10 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
   return (
     <div className="h-full overflow-hidden bg-gray-50">
       <ScrollArea className="h-full">
-        <div className="p-4 space-y-6">
+        <div className="p-3 space-y-3">
           {/* パワーアップ記録 */}
           <Card className="bg-white border-gray-200 shadow-sm">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-green-600" />
                 パワーアップ記録
@@ -935,9 +1189,128 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
             </CardContent>
           </Card>
 
+          {/* 1RM推移チャート */}
+          <Card className="bg-white border-gray-200 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-purple-600" />
+                1RM推移グラフ
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* 種目選択 */}
+              <div className="mb-6">
+                <label className="text-sm font-medium text-gray-700 mb-2 block">種目を選択</label>
+                <Select value={selectedExercise} onValueChange={(value) => setSelectedExercise(value)}>
+                  <SelectTrigger className="max-w-xs">
+                    <SelectValue placeholder="種目を選択してください" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {Object.entries(availableExercisesForChart).map(([bodyPart, exercises]) => (
+                      <div key={bodyPart}>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border-b border-red-100">
+                          {bodyPart}
+                        </div>
+                        {exercises.map((exercise) => (
+                          <SelectItem key={exercise} value={exercise} className="pl-4">
+                            {exercise}
+                          </SelectItem>
+                        ))}
+                      </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* チャート */}
+              {oneRMChartData.length > 0 ? (
+                <div className="h-64 mb-6">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={oneRMChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis 
+                        dataKey="label" 
+                        tick={{ fontSize: 12 }}
+                        stroke="#666"
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12 }}
+                        stroke="#666"
+                        tickFormatter={(value) => `${value}kg`}
+                      />
+                      <Tooltip 
+                        formatter={(value: number) => [`${value}kg`, '1RM']}
+                        labelStyle={{ color: '#666' }}
+                        contentStyle={{ 
+                          backgroundColor: 'white', 
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="oneRM" 
+                        stroke="#dc2626" 
+                        strokeWidth={3}
+                        dot={{ fill: '#dc2626', strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6, stroke: '#dc2626', strokeWidth: 2, fill: 'white' }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-gray-500">
+                  <div className="text-center">
+                    <div className="text-sm">
+                      {selectedExercise ? 
+                        `${selectedExercise}の記録がありません` : 
+                        '種目を選択してください'
+                      }
+                    </div>
+                    <div className="text-xs mt-1">
+                      重量と回数を記録すると1RMの推移が表示されます
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 統計情報 */}
+              {oneRMChartData.length > 0 && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <div className="text-lg font-bold text-gray-900">
+                      {formatToTwoSignificantDigits(oneRMChartData[oneRMChartData.length - 1]?.oneRM || 0)}kg
+                    </div>
+                    <div className="text-xs text-gray-600">最新1RM</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <div className="text-lg font-bold text-gray-900">
+                      {formatToTwoSignificantDigits(Math.max(...oneRMChartData.map(d => d.oneRM)))}kg
+                    </div>
+                    <div className="text-xs text-gray-600">最高1RM</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <div className={`text-lg font-bold ${
+                      oneRMChartData.length > 1 && 
+                      oneRMChartData[oneRMChartData.length - 1].oneRM > oneRMChartData[0].oneRM 
+                        ? 'text-green-600' : 'text-gray-900'
+                    }`}>
+                      {oneRMChartData.length > 1 ? 
+                        `+${formatToTwoSignificantDigits(oneRMChartData[oneRMChartData.length - 1].oneRM - oneRMChartData[0].oneRM)}kg` :
+                        '0kg'
+                      }
+                    </div>
+                    <div className="text-xs text-gray-600">総向上</div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* トレーニングボリューム */}
           <Card className="bg-white border-gray-200 shadow-sm">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Zap className="h-5 w-5 text-orange-500" />
                 トレーニングボリューム
@@ -997,10 +1370,10 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
                     <Line 
                       type="monotone" 
                       dataKey="volume" 
-                      stroke="#f97316" 
+                      stroke="#dc2626" 
                       strokeWidth={3}
-                      dot={{ fill: '#f97316', strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, stroke: '#f97316', strokeWidth: 2, fill: 'white' }}
+                      dot={{ fill: '#dc2626', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: '#dc2626', strokeWidth: 2, fill: 'white' }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -1030,14 +1403,14 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
 
           {/* 筋肉バランス（五角形レーダーチャート） */}
           <Card className="bg-white border-gray-200 shadow-sm">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Activity className="h-5 w-5 text-blue-600" />
                 筋肉バランス
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center mb-3">
                 <RadarChart data={bodyPartBalance} />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -1053,7 +1426,7 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
 
           {/* 目標達成率 */}
           <Card className="bg-white border-gray-200 shadow-sm">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Target className="h-5 w-5 text-purple-600" />
                 目標達成率
@@ -1112,14 +1485,14 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
 
           {/* 一週間の筋トレ日数 */}
           <Card className="bg-white border-gray-200 shadow-sm">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-blue-600" />
                 一週間の筋トレ日数
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+              <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
                 <div className="text-4xl font-bold text-blue-600 mb-2">{weeklyWorkoutDays}</div>
                 <div className="text-sm text-gray-600 mb-1">今週のトレーニング日数</div>
                 <div className="text-xs text-gray-500">
@@ -1139,8 +1512,8 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
                 </div>
               </div>
               
-              <div className="mt-4 bg-gray-50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">曜日別頻度</h3>
+              <div className="mt-3 bg-gray-50 rounded-lg p-3">
+                <h3 className="font-medium text-gray-900 mb-2">曜日別頻度</h3>
                 <div className="h-20 flex items-end gap-2">
                   {trainingFrequency.map((day, index) => (
                     <div key={index} className="flex-1 flex flex-col items-center">
@@ -1158,7 +1531,7 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
 
           {/* 日数目標 */}
           <Card className="bg-white border-gray-200 shadow-sm">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Award className="h-5 w-5 text-green-600" />
                 日数目標

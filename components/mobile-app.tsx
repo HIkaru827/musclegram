@@ -315,7 +315,7 @@ export function MobileApp() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsSearchOpen(true)}
-                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
+                className="bg-transparent hover:bg-red-600/20 text-white border-none transition-all duration-300 hover:scale-105 p-2 rounded-xl"
               >
                 <Search className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
@@ -324,7 +324,7 @@ export function MobileApp() {
                   variant="outline"
                   size="sm"
                   onClick={handleNotificationClick}
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
+                  className="bg-transparent hover:bg-red-600/20 text-white border-none transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                 >
                   <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
@@ -349,7 +349,7 @@ export function MobileApp() {
           localStorage.setItem('musclegram_activeTab', value)
         }} className="flex flex-col flex-1">
           {/* Content - フル高さでスクロール可能 */}
-          <div className="flex-1 overflow-y-auto pb-16" style={{maxHeight: 'calc(100vh - 64px)'}}>
+          <div className="flex-1 overflow-y-auto pb-20" style={{maxHeight: 'calc(100vh - 64px)'}}>
             <TabsContent value="home" className="m-0 p-0">
               {/* Header */}
               <div className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ${
@@ -363,7 +363,7 @@ export function MobileApp() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsSearchOpen(true)}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
+                    className="bg-transparent hover:bg-red-600/20 text-white border-none transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
@@ -372,7 +372,7 @@ export function MobileApp() {
                       variant="outline"
                       size="sm"
                       onClick={handleNotificationClick}
-                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
+                      className="bg-transparent hover:bg-red-600/20 text-white border-none transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                     >
                       <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
@@ -408,7 +408,7 @@ export function MobileApp() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsSearchOpen(true)}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
+                    className="bg-transparent hover:bg-red-600/20 text-white border-none transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
@@ -417,7 +417,7 @@ export function MobileApp() {
                       variant="outline"
                       size="sm"
                       onClick={handleNotificationClick}
-                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
+                      className="bg-transparent hover:bg-red-600/20 text-white border-none transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                     >
                       <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
@@ -446,7 +446,7 @@ export function MobileApp() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsSearchOpen(true)}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
+                    className="bg-transparent hover:bg-red-600/20 text-white border-none transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
@@ -455,7 +455,7 @@ export function MobileApp() {
                       variant="outline"
                       size="sm"
                       onClick={handleNotificationClick}
-                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
+                      className="bg-transparent hover:bg-red-600/20 text-white border-none transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                     >
                       <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
@@ -484,7 +484,7 @@ export function MobileApp() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsSearchOpen(true)}
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
+                    className="bg-transparent hover:bg-red-600/20 text-white border-none transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                   >
                     <Search className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
@@ -493,7 +493,7 @@ export function MobileApp() {
                       variant="outline"
                       size="sm"
                       onClick={handleNotificationClick}
-                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-none shadow-lg shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 p-2 rounded-xl"
+                      className="bg-transparent hover:bg-red-600/20 text-white border-none transition-all duration-300 hover:scale-105 p-2 rounded-xl"
                     >
                       <Bell className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
@@ -523,7 +523,7 @@ export function MobileApp() {
       )}
 
       {/* 下部ナビゲーション */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-red-200/30 shadow-2xl shadow-red-500/10 h-16">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-red-200/30 shadow-2xl shadow-red-500/10 h-20">
         <div className="flex h-full">
           <button
             onClick={() => {

@@ -21,6 +21,19 @@ interface UserAccount {
   createdAt: string
 }
 
+interface Exercise {
+  id: number
+  name: string
+  sets: Array<{
+    weight: string
+    reps: string
+  }>
+  timestamp: string
+  photo?: string
+  memo?: string
+  postId?: string
+}
+
 export function WorkoutTab({ 
   currentUser
 }: { 
@@ -41,6 +54,167 @@ export function WorkoutTab({
   const [selectedDateExercises, setSelectedDateExercises] = useState<Exercise[]>([])
   const [isDateDetailOpen, setIsDateDetailOpen] = useState(false)
   const [selectedDateForNewWorkout, setSelectedDateForNewWorkout] = useState<Date | null>(null)
+
+  // 有効数字2桁でフォーマットする関数
+  const formatToTwoSignificantDigits = (num: number): string => {
+    if (num === 0) return '0'
+    if (num < 0.01) return '0.01'
+    
+    const magnitude = Math.floor(Math.log10(Math.abs(num)))
+    const factor = Math.pow(10, 1 - magnitude)
+    const rounded = Math.round(num * factor) / factor
+    
+    if (rounded >= 100) {
+      return Math.round(rounded).toString()
+    } else if (rounded >= 10) {
+      return rounded.toFixed(1)
+    } else {
+      return rounded.toFixed(2)
+    }
+  }
+
+  // 部位別の種目分類（記録画面の分類と統一）
+  const exerciseBodyPartMap: { [key: string]: string } = {
+    // 胸
+    'ベンチプレス': '胸',
+    'ペックフライ': '胸',
+    'チェストプレス': '胸',
+    'インクラインベンチプレス': '胸',
+    'ダンベルプレス': '胸',
+    'インクラインダンベルプレス': '胸',
+    'ダンベルフライ': '胸',
+    'インクラインダンベルフライ': '胸',
+    'ディップス': '胸',
+    'プッシュアップ': '胸',
+    
+    // 背中
+    'デッドリフト': '背中',
+    'ラットプルダウン': '背中',
+    'プーリーロー': '背中',
+    'ベントオーバーロー': '背中',
+    'チンニング': '背中',
+    'ワンハンドロー': '背中',
+    'シーテッドロー': '背中',
+    'Tバーロー': '背中',
+    
+    // 脚
+    'スクワット': '脚',
+    'スミスマシン・バーベルスクワット': '脚',
+    'レッグプレス': '脚',
+    'レッグエクステンション': '脚',
+    'レッグカール': '脚',
+    'カーフレイズ': '脚',
+    'ランジ': '脚',
+    'ブルガリアンスクワット': '脚',
+    
+    // 肩
+    'サイドレイズ': '肩',
+    'ショルダープレス': '肩',
+    'フロントレイズ': '肩',
+    'リアレイズ': '肩',
+    'アップライトロー': '肩',
+    'シュラッグ': '肩',
+    
+    // 腕
+    'フィンガーロール': '腕',
+    'バーベルカール': '腕',
+    'アームカール': '腕',
+    'ダンベルカール': '腕',
+    'ハンマーカール': '腕',
+    'プリーチャーカール': '腕',
+    'トライセップスエクステンション': '腕',
+    'フレンチプレス': '腕',
+    'クローズグリップベンチプレス': '腕',
+    
+    // お尻
+    'ヒップスラスト': 'お尻',
+    
+    // 腹筋
+    'プランク': '腹筋',
+    '上体起こし': '腹筋',
+    'クランチ': '腹筋',
+    'シットアップ': '腹筋',
+    'レッグレイズ': '腹筋',
+    'ロシアンツイスト': '腹筋',
+    'マウンテンクライマー': '腹筋',
+    
+    // 有酸素運動
+    'ランニング': '有酸素運動',
+    'サイクリング': '有酸素運動',
+    'エリプティカル': '有酸素運動'
+  }
+
+  // 各種目の最大1RMを部位別に計算する関数
+  const getMaxOneRMByBodyPart = useMemo(() => {
+    return () => {
+      const exerciseMaxMap: { [exerciseName: string]: number } = {}
+      
+      // 全ての運動記録から各種目の最大1RMを計算
+      exercises.forEach((exercise) => {
+        if (exercise.sets && exercise.sets.length > 0) {
+          exercise.sets.forEach((set) => {
+            const weight = parseFloat(set.weight)
+            const reps = parseInt(set.reps)
+            
+            if (weight > 0 && reps > 0) {
+              // 1RM計算: (重量 × 回数) / 40 + 重量
+              const oneRM = (weight * reps) / 40 + weight
+              
+              if (!exerciseMaxMap[exercise.name] || oneRM > exerciseMaxMap[exercise.name]) {
+                exerciseMaxMap[exercise.name] = oneRM // 生の値を保存
+              }
+            }
+          })
+        }
+      })
+      
+      // 部位別にグループ化
+      const bodyPartGroups: { [bodyPart: string]: { name: string; maxOneRM: number }[] } = {}
+      
+      Object.entries(exerciseMaxMap).forEach(([exerciseName, maxOneRM]) => {
+        // 静的な分類マップをまずチェック
+        let bodyPart = exerciseBodyPartMap[exerciseName]
+        
+        // 見つからない場合は、記録画面の分類から動的に検索
+        if (!bodyPart) {
+          for (const [part, exerciseList] of Object.entries(exercisesByBodyPart)) {
+            if (exerciseList.includes(exerciseName)) {
+              bodyPart = part
+              break
+            }
+          }
+        }
+        
+        // カスタム種目の分類も確認
+        if (!bodyPart) {
+          for (const [part, exerciseList] of Object.entries(customExercises)) {
+            if (Array.isArray(exerciseList) && exerciseList.includes(exerciseName)) {
+              bodyPart = part
+              break
+            }
+          }
+        }
+        
+        // どこにも分類されない場合は「その他」
+        if (!bodyPart) {
+          bodyPart = 'その他'
+        }
+        
+        if (!bodyPartGroups[bodyPart]) {
+          bodyPartGroups[bodyPart] = []
+        }
+        
+        bodyPartGroups[bodyPart].push({ name: exerciseName, maxOneRM: parseFloat(formatToTwoSignificantDigits(maxOneRM)) })
+      })
+      
+      // 各部位内で1RM順にソート
+      Object.keys(bodyPartGroups).forEach(bodyPart => {
+        bodyPartGroups[bodyPart].sort((a, b) => b.maxOneRM - a.maxOneRM)
+      })
+      
+      return bodyPartGroups
+    }
+  }, [exercises, customExercises])
 
   // Firestoreからエクササイズデータを読み込み
   useEffect(() => {
@@ -982,6 +1156,36 @@ export function WorkoutTab({
                       <span>トレーニング記録あり</span>
                     </div>
                   </div>
+
+                  {/* 最大1RM表示（部位別） */}
+                  <div className="mt-6 bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                    <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                      <Dumbbell className="h-5 w-5 text-red-500" />
+                      最大1RM記録（部位別）
+                    </h4>
+                    <div className="space-y-4">
+                      {Object.entries(getMaxOneRMByBodyPart()).map(([bodyPart, exercises]) => (
+                        <div key={bodyPart} className="border border-gray-100 rounded-lg p-3">
+                          <h5 className="font-bold text-red-600 mb-2 text-sm">{bodyPart}</h5>
+                          <div className="space-y-1">
+                            {exercises.map((exercise) => (
+                              <div key={exercise.name} className="flex justify-between items-center py-1 px-2 bg-gray-50 rounded">
+                                <span className="text-sm text-gray-700">{exercise.name}</span>
+                                <span className="text-sm font-bold text-red-600">
+                                  {exercise.maxOneRM}kg
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      {Object.keys(getMaxOneRMByBodyPart()).length === 0 && (
+                        <div className="text-center text-gray-400 py-4">
+                          <p>記録がありません</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -1209,22 +1413,35 @@ export function WorkoutTab({
 
                       {/* セット詳細 */}
                       <div className="space-y-2">
-                        {exercise.sets.map((set, setIndex) => (
-                          <div key={setIndex} className="flex items-center gap-2">
-                            <div className="w-6 text-xs text-center text-black font-bold">{setIndex + 1}</div>
-                            <div className="w-20">
-                              <div className="bg-red-100 border border-red-300 rounded-lg px-2 py-1 text-center text-xs text-gray-900 font-medium">
-                                {set.weight || '0'}kg
+                        {exercise.sets.map((set, setIndex) => {
+                          // 1RM計算: (重量 × 回数) / 40 + 重量
+                          const weight = parseFloat(set.weight) || 0
+                          const reps = parseFloat(set.reps) || 0
+                          const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
+                          
+                          return (
+                            <div key={setIndex} className="flex items-center gap-2">
+                              <div className="w-6 text-xs text-center text-black font-bold">{setIndex + 1}</div>
+                              <div className="w-16">
+                                <div className="bg-red-100 border border-red-300 rounded-lg px-2 py-1 text-center text-xs text-gray-900 font-medium">
+                                  {set.weight || '0'}kg
+                                </div>
                               </div>
-                            </div>
-                            <div className="text-xs text-black font-bold">×</div>
-                            <div className="w-20">
-                              <div className="bg-red-100 border border-red-300 rounded-lg px-2 py-1 text-center text-xs text-gray-900 font-medium">
-                                {set.reps || '0'}回
+                              <div className="text-xs text-black font-bold">×</div>
+                              <div className="w-16">
+                                <div className="bg-red-100 border border-red-300 rounded-lg px-2 py-1 text-center text-xs text-gray-900 font-medium">
+                                  {set.reps || '0'}回
+                                </div>
                               </div>
+                              <div className="w-20">
+                                <div className="bg-blue-100 border border-blue-300 rounded-lg px-2 py-1 text-center text-xs text-blue-900 font-medium">
+                                  {oneRM > 0 ? `${formatToTwoSignificantDigits(oneRM)}kg` : '0kg'}
+                                </div>
+                              </div>
+                              <div className="text-xs text-blue-600 font-medium">1RM</div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
                     
@@ -1262,7 +1479,7 @@ export function WorkoutTab({
                     setIsExerciseModalOpen(true)
                   }
                 }}
-                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-2xl shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 rounded-xl font-bold text-lg py-3"
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-medium text-lg py-3 rounded-lg transition-colors duration-200"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 この日に記録を追加
@@ -1285,6 +1502,7 @@ interface Exercise {
   timestamp: string
   photo?: string
   memo?: string
+  postId?: string
 }
 
 // 部位別種目データ
@@ -1685,7 +1903,7 @@ function ExerciseEditDetail({
           <Dumbbell className="h-4 w-4 text-red-400" />
           <span className="text-sm text-red-400">種目名</span>
         </div>
-{isSelectingExercise ? (
+        {isSelectingExercise ? (
           <div className="bg-gray-900 rounded-lg border border-red-900/50 max-h-60 overflow-y-auto">
             <ExerciseSelector 
               onSelect={handleExerciseSelect}
@@ -1721,21 +1939,28 @@ function ExerciseEditDetail({
 
       {/* セット入力 */}
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="text-sm font-semibold text-red-600">セット</div>
-          <div className="text-sm font-semibold text-red-600">重さ</div>
-          <div className="text-sm font-semibold text-red-600">回数</div>
+        <div className="grid grid-cols-4 gap-4 text-center">
+          <div className="text-sm font-medium text-gray-700">セット</div>
+          <div className="text-sm font-medium text-gray-700">重さ</div>
+          <div className="text-sm font-medium text-gray-700">回数</div>
+          <div className="text-sm font-medium text-gray-700">1RM</div>
         </div>
         
-        {sets.map((set, index) => (
-          <div key={set.id} className="grid grid-cols-3 gap-4 items-center">
+        {sets.map((set, index) => {
+          // 1RM計算: (重量 × 回数) / 40 + 重量
+          const weight = parseFloat(set.weight) || 0
+          const reps = parseFloat(set.reps) || 0
+          const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
+          
+          return (
+          <div key={set.id} className="grid grid-cols-4 gap-4 items-center">
             <div className="text-center">
               <button
                 onClick={() => handleSetClick(set.id, index)}
-                className={`w-10 h-10 rounded-full font-bold text-sm transition-all duration-300 ${
+                className={`w-10 h-10 rounded-full font-medium text-sm transition-colors duration-200 ${
                   sets.length <= 1 
                     ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                    : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25 hover:shadow-red-600/30 hover:scale-110'
+                    : 'bg-red-600 hover:bg-red-700 text-white'
                 }`}
                 disabled={sets.length <= 1}
               >
@@ -1755,7 +1980,7 @@ function ExerciseEditDetail({
                   }}
                   onBlur={handleInputSubmit}
                   onKeyDown={handleKeyPress}
-                  className="h-10 bg-white border-red-300 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg transition-all duration-300"
+                  className="h-10 bg-white border-gray-300 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 rounded-lg transition-colors duration-200"
                   placeholder="重さ"
                   inputMode="decimal"
                   autoFocus
@@ -1763,7 +1988,7 @@ function ExerciseEditDetail({
               ) : (
                 <button
                   onClick={() => handleFieldClick(set.id, 'weight', set.weight)}
-                  className="w-full h-10 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 text-gray-800 transition-all duration-300 hover:scale-105"
+                  className="w-full h-10 bg-white hover:bg-gray-50 rounded-lg border border-gray-200 text-gray-800 transition-colors duration-200"
                 >
                   {set.weight || "0"}
                 </button>
@@ -1782,7 +2007,7 @@ function ExerciseEditDetail({
                   }}
                   onBlur={handleInputSubmit}
                   onKeyDown={handleKeyPress}
-                  className="h-10 bg-white border-red-300 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg transition-all duration-300"
+                  className="h-10 bg-white border-gray-300 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 rounded-lg transition-colors duration-200"
                   placeholder="回数"
                   inputMode="numeric"
                   autoFocus
@@ -1790,14 +2015,20 @@ function ExerciseEditDetail({
               ) : (
                 <button
                   onClick={() => handleFieldClick(set.id, 'reps', set.reps)}
-                  className="w-full h-10 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 text-gray-800 transition-all duration-300 hover:scale-105"
+                  className="w-full h-10 bg-white hover:bg-gray-50 rounded-lg border border-gray-200 text-gray-800 transition-colors duration-200"
                 >
                   {set.reps || "0"}
                 </button>
               )}
             </div>
-          </div>
-        ))}
+            <div className="text-center">
+              <div className="h-10 bg-white rounded-lg border border-gray-200 text-gray-800 font-medium text-sm flex items-center justify-center">
+                {oneRM > 0 ? `${formatToTwoSignificantDigits(oneRM)}kg` : '0kg'}
+              </div>
+            </div>
+            </div>
+          )
+        })}
         
         {/* セット追加ボタン */}
         <div className="flex justify-center pt-2">
@@ -1805,7 +2036,7 @@ function ExerciseEditDetail({
             variant="outline"
             size="sm"
             onClick={addSet}
-            className="border-red-300 text-red-600 bg-white hover:bg-red-50 hover:text-red-700 transition-all duration-300 hover:scale-105 rounded-lg shadow-sm"
+            className="border-gray-300 text-gray-700 bg-white hover:bg-gray-50 hover:text-gray-800 transition-colors duration-200 rounded-lg"
           >
             <Plus className="h-4 w-4 mr-1" />
             追加
@@ -1865,7 +2096,7 @@ function ExerciseEditDetail({
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             placeholder="メモを入力してください..."
-            className="w-full p-3 bg-white border border-red-300 rounded-lg text-gray-900 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300"
+            className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-colors duration-200"
             rows={3}
           />
         </div>
@@ -2109,8 +2340,8 @@ function ExerciseDetail({
   return (
     <div className="space-y-6 p-1">
       {/* 前回の履歴 */}
-      <div className="bg-red-50 rounded-xl p-4 border border-red-200 shadow-sm">
-        <h3 className="text-sm font-semibold text-red-600 mb-2">前回の記録 ({previousHistory.date})</h3>
+      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <h3 className="text-sm font-medium text-gray-700 mb-2">前回の記録 ({previousHistory.date})</h3>
         <div className="space-y-1">
           {previousHistory.sets.length > 0 ? (
             previousHistory.sets.map((set: any, index: number) => (
@@ -2128,21 +2359,28 @@ function ExerciseDetail({
 
       {/* セット入力 */}
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="text-sm font-semibold text-red-600">セット</div>
-          <div className="text-sm font-semibold text-red-600">重さ</div>
-          <div className="text-sm font-semibold text-red-600">回数</div>
+        <div className="grid grid-cols-4 gap-4 text-center">
+          <div className="text-sm font-medium text-gray-700">セット</div>
+          <div className="text-sm font-medium text-gray-700">重さ</div>
+          <div className="text-sm font-medium text-gray-700">回数</div>
+          <div className="text-sm font-medium text-gray-700">1RM</div>
         </div>
         
-        {sets.map((set, index) => (
-          <div key={set.id} className="grid grid-cols-3 gap-4 items-center">
+        {sets.map((set, index) => {
+          // 1RM計算: (重量 × 回数) / 40 + 重量
+          const weight = parseFloat(set.weight) || 0
+          const reps = parseFloat(set.reps) || 0
+          const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
+          
+          return (
+            <div key={set.id} className="grid grid-cols-4 gap-4 items-center">
             <div className="text-center">
               <button
                 onClick={() => handleSetClick(set.id, index)}
-                className={`w-10 h-10 rounded-full font-bold text-sm transition-all duration-300 ${
+                className={`w-10 h-10 rounded-full font-medium text-sm transition-colors duration-200 ${
                   sets.length <= 1 
                     ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                    : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/25 hover:shadow-red-600/30 hover:scale-110'
+                    : 'bg-red-600 hover:bg-red-700 text-white'
                 }`}
                 disabled={sets.length <= 1}
               >
@@ -2185,7 +2423,7 @@ function ExerciseDetail({
                       setInputValue(target.value)
                     }
                   }}
-                  className="h-10 bg-white border-red-300 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg transition-all duration-300"
+                  className="h-10 bg-white border-gray-300 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 rounded-lg transition-colors duration-200"
                   placeholder="重さ"
                   inputMode="decimal"
                   autoFocus
@@ -2193,7 +2431,7 @@ function ExerciseDetail({
               ) : (
                 <button
                   onClick={() => handleFieldClick(set.id, 'weight', set.weight)}
-                  className="w-full h-10 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 text-gray-800 transition-all duration-300 hover:scale-105"
+                  className="w-full h-10 bg-white hover:bg-gray-50 rounded-lg border border-gray-200 text-gray-800 transition-colors duration-200"
                 >
                   {set.weight || "0"}
                 </button>
@@ -2231,7 +2469,7 @@ function ExerciseDetail({
                       setInputValue(target.value)
                     }
                   }}
-                  className="h-10 bg-white border-red-300 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 rounded-lg transition-all duration-300"
+                  className="h-10 bg-white border-gray-300 text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 rounded-lg transition-colors duration-200"
                   placeholder="回数"
                   inputMode="numeric"
                   autoFocus
@@ -2239,14 +2477,20 @@ function ExerciseDetail({
               ) : (
                 <button
                   onClick={() => handleFieldClick(set.id, 'reps', set.reps)}
-                  className="w-full h-10 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 text-gray-800 transition-all duration-300 hover:scale-105"
+                  className="w-full h-10 bg-white hover:bg-gray-50 rounded-lg border border-gray-200 text-gray-800 transition-colors duration-200"
                 >
                   {set.reps || "0"}
                 </button>
               )}
             </div>
-          </div>
-        ))}
+            <div className="text-center">
+              <div className="h-10 bg-white rounded-lg border border-gray-200 text-gray-800 font-medium text-sm flex items-center justify-center">
+                {oneRM > 0 ? `${formatToTwoSignificantDigits(oneRM)}kg` : '0kg'}
+              </div>
+            </div>
+            </div>
+          )
+        })}
         
         {/* セット追加ボタン */}
         <div className="flex justify-center pt-2">
@@ -2254,7 +2498,7 @@ function ExerciseDetail({
             variant="outline"
             size="sm"
             onClick={addSet}
-            className="border-red-300 text-red-600 bg-white hover:bg-red-50 hover:text-red-700 transition-all duration-300 hover:scale-105 rounded-lg shadow-sm"
+            className="border-gray-300 text-gray-700 bg-white hover:bg-gray-50 hover:text-gray-800 transition-colors duration-200 rounded-lg"
           >
             <Plus className="h-4 w-4 mr-1" />
             追加
@@ -2314,7 +2558,7 @@ function ExerciseDetail({
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             placeholder="メモを入力してください..."
-            className="w-full p-3 bg-white border border-red-300 rounded-lg text-gray-900 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300"
+            className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-colors duration-200"
             rows={3}
           />
         </div>
@@ -2323,7 +2567,7 @@ function ExerciseDetail({
       {/* アクションボタン */}
       <div className="flex pt-4">
         <Button 
-          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-2xl shadow-red-500/25 hover:shadow-red-600/30 transition-all duration-300 hover:scale-105 rounded-xl font-bold text-lg py-3"
+          className="w-full bg-red-600 hover:bg-red-700 text-white font-medium text-lg py-3 rounded-lg transition-colors duration-200"
           onClick={handlePost}
         >
           <Share2 className="h-4 w-4 mr-1" /> 投稿
@@ -2440,16 +2684,16 @@ function TimerComponent() {
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleTimeSubmit}
           onKeyPress={handleKeyPress}
-          className="w-20 px-3 py-2 text-center bg-gradient-to-br from-blue-900/50 to-indigo-900/50 border border-blue-400/50 rounded-xl text-white text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-400/50 backdrop-blur-sm"
+          className="w-20 px-3 py-2 text-center bg-white border border-gray-300 rounded-lg text-gray-800 text-lg font-medium focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400"
           autoFocus
         />
       ) : (
         <button
           onClick={handleTimeClick}
-          className={`text-3xl font-bold transition-all duration-300 cursor-pointer px-2 py-1 rounded-lg ${
+          className={`text-2xl font-medium transition-all duration-300 cursor-pointer px-3 py-2 rounded-lg bg-white border border-gray-200 ${
             isRunning 
-              ? 'text-red-400 animate-pulse' 
-              : 'text-blue-400 hover:text-blue-300 hover:scale-105'
+              ? 'text-red-600 animate-pulse' 
+              : 'text-gray-800 hover:text-gray-600 hover:border-gray-300'
           }`}
           disabled={isRunning}
         >
@@ -2462,9 +2706,9 @@ function TimerComponent() {
         size="sm"
         className={`${
           isRunning 
-            ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/25' 
-            : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg shadow-green-500/25'
-        } text-white font-bold px-4 py-2 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 border-none`}
+            ? 'bg-red-600 hover:bg-red-700' 
+            : 'bg-green-600 hover:bg-green-700'
+        } text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200`}
       >
         {isRunning ? 'STOP' : 'START'}
       </Button>
