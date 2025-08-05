@@ -74,11 +74,17 @@ export function HomeTab({
                 username: user?.username || "unknown",
               },
               content: post.content,
+              memo: post.exercise.memo || null, // メモを追加
               workout: {
                 type: post.exercise.name,
-                details: post.exercise.sets.map((set: any, index: number) => 
-                  `セット${index + 1}: ${set.weight}kg × ${set.reps}回`
-                ).join('\n'),
+                details: post.exercise.sets.map((set: any, index: number) => {
+                  // 1RM計算: (重量 × 回数) / 40 + 重量
+                  const weight = parseFloat(set.weight) || 0
+                  const reps = parseFloat(set.reps) || 0
+                  const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
+                  return `セット${index + 1}: ${set.weight}kg × ${set.reps}回 (1RM: ${oneRM > 0 ? oneRM.toFixed(1) : '0'}kg)`
+                }).join('\n'),
+                sets: post.exercise.sets, // 元のセットデータも保持
               },
               image: post.exercise.photo || undefined,
               time: post.timestamp || "先ほど",
@@ -358,6 +364,15 @@ export function HomeTab({
                           </span>
                         </div>
                         
+                        {/* メモ表示 */}
+                        {post.memo && (
+                          <div className="mb-2">
+                            <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 border-l-4 border-red-400 ml-6">
+                              {post.memo}
+                            </p>
+                          </div>
+                        )}
+                        
                         {/* セット詳細 */}
                         {post.workout && (
                           <div className="bg-gray-50 rounded-lg p-3 mb-3 border">
@@ -470,6 +485,15 @@ export function HomeTab({
                             {post.content}
                           </span>
                         </div>
+                        
+                        {/* メモ表示 */}
+                        {post.memo && (
+                          <div className="mb-2">
+                            <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 border-l-4 border-red-400 ml-6">
+                              {post.memo}
+                            </p>
+                          </div>
+                        )}
                         
                         {/* セット詳細 */}
                         {post.workout && (

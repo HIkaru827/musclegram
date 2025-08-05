@@ -149,7 +149,7 @@ export function FirebaseAuthScreen({ onAuthSuccess }: FirebaseAuthScreenProps) {
         displayName: registerData.displayName,
         username: registerData.username,
         bio: "",
-        avatar: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName || 'ユーザー') + '&background=dc2626&color=ffffff&size=80',
+        avatar: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(registerData.displayName || 'ユーザー') + '&background=dc2626&color=ffffff&size=80',
         createdAt: new Date().toISOString()
       }
 

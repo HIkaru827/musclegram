@@ -229,10 +229,9 @@ export function ProfileTab({
   useEffect(() => {
     const handleCommentsUpdate = (e: CustomEvent) => {
       const { postId, count } = e.detail
-      setCommentsCount(prev => ({
-        ...prev,
-        [postId]: count
-      }))
+      if (onCommentUpdate) {
+        onCommentUpdate(postId, count)
+      }
     }
 
     window.addEventListener('commentsUpdated', handleCommentsUpdate as EventListener)
@@ -240,7 +239,7 @@ export function ProfileTab({
     return () => {
       window.removeEventListener('commentsUpdated', handleCommentsUpdate as EventListener)
     }
-  }, [])
+  }, [onCommentUpdate])
 
   // Firestoreからユーザーの投稿を読み込み
   useEffect(() => {
@@ -580,12 +579,22 @@ export function ProfileTab({
                           <div className="bg-gray-50 rounded-lg p-3 mb-3 border">
                             <div className="text-xs text-gray-600 mb-2 font-medium">トレーニング詳細</div>
                             <div className="space-y-1">
-                              {exercise.sets.map((set: any, setIndex: number) => (
-                                <div key={setIndex} className="flex items-center gap-2 text-xs">
-                                  <span className="w-12 text-red-400 font-medium">セット{setIndex + 1}:</span>
-                                  <span className="text-gray-700">{set.weight}kg × {set.reps}回</span>
-                                </div>
-                              ))}
+                              {exercise.sets.map((set: any, setIndex: number) => {
+                                // 1RM計算: (重量 × 回数) / 40 + 重量
+                                const weight = parseFloat(set.weight) || 0
+                                const reps = parseFloat(set.reps) || 0
+                                const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
+                                
+                                return (
+                                  <div key={setIndex} className="flex items-center gap-2 text-xs">
+                                    <span className="w-12 text-red-400 font-medium">セット{setIndex + 1}:</span>
+                                    <span className="text-gray-700">{set.weight}kg × {set.reps}回</span>
+                                    <span className="text-blue-600 font-medium ml-2">
+                                      1RM: {oneRM > 0 ? `${oneRM.toFixed(1)}kg` : '0kg'}
+                                    </span>
+                                  </div>
+                                )
+                              })}
                             </div>
                           </div>
 

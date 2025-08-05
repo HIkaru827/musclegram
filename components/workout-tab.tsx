@@ -685,7 +685,7 @@ export function WorkoutTab({
   // グローバル投稿として保存
   const saveGlobalPost = async (exercise: Exercise) => {
     try {
-      const postContent = exercise.memo || `${exercise.name}を投稿しました！`
+      const postContent = `${exercise.name}を投稿しました！`
       
       console.log('Attempting to save to Firestore...', {
         userId: currentUser.id,
@@ -1727,6 +1727,24 @@ function ExerciseEditDetail({
   )
   const [editingField, setEditingField] = useState<{ setId: number; field: 'weight' | 'reps' } | null>(null)
   const [inputValue, setInputValue] = useState("")
+  
+  // 有効数字2桁でフォーマットする関数
+  const formatToTwoSignificantDigits = (num: number): string => {
+    if (num === 0) return '0'
+    if (num < 0.01) return '0.01'
+    
+    const magnitude = Math.floor(Math.log10(Math.abs(num)))
+    const factor = Math.pow(10, 1 - magnitude)
+    const rounded = Math.round(num * factor) / factor
+    
+    if (rounded >= 100) {
+      return Math.round(rounded).toString()
+    } else if (rounded >= 10) {
+      return rounded.toFixed(1)
+    } else {
+      return rounded.toFixed(2)
+    }
+  }
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ setId: number; setIndex: number } | null>(null)
   const [photo, setPhoto] = useState<string>(exercise.photo || "")
   const [memo, setMemo] = useState<string>(exercise.memo || "")
@@ -2179,6 +2197,24 @@ function ExerciseDetail({
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ setId: number; setIndex: number } | null>(null)
   const [photo, setPhoto] = useState<string>("")
   const [memo, setMemo] = useState<string>("")
+  
+  // 有効数字2桁でフォーマットする関数
+  const formatToTwoSignificantDigits = (num: number): string => {
+    if (num === 0) return '0'
+    if (num < 0.01) return '0.01'
+    
+    const magnitude = Math.floor(Math.log10(Math.abs(num)))
+    const factor = Math.pow(10, 1 - magnitude)
+    const rounded = Math.round(num * factor) / factor
+    
+    if (rounded >= 100) {
+      return Math.round(rounded).toString()
+    } else if (rounded >= 10) {
+      return rounded.toFixed(1)
+    } else {
+      return rounded.toFixed(2)
+    }
+  }
 
   // 同じ種目の前回の記録を取得
   const getPreviousHistory = () => {

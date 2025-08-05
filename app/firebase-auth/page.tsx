@@ -73,5 +73,5 @@ export default function FirebaseAuthPage() {
     )
   }
 
-  return <FirebaseAuthScreen onAuthSuccess={handleAuthSuccess} onBackToLocalAuth={handleBackToLocalAuth} />
+  return <FirebaseAuthScreen onAuthSuccess={handleAuthSuccess} />
 }
