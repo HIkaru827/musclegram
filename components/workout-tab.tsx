@@ -129,9 +129,9 @@ export function WorkoutTab({
         comments: []
       }
       
-      await firestorePosts.add(postData)
+      const result = await firestorePosts.create(postData)
+      console.log('投稿成功:', result)
       setDailyPost(prev => ({ ...prev, [date]: memo }))
-      setRecordMemo(prev => ({ ...prev, [date]: '' }))
       alert('投稿が完了しました！')
     } catch (error) {
       console.error('投稿エラー:', error)
@@ -1018,12 +1018,9 @@ export function WorkoutTab({
     <div className="h-full flex flex-col">
       {/* タブ切り替え */}
       <div className="flex-shrink-0">
-        <Tabs defaultValue="current" className="w-full">
+        <Tabs defaultValue="records" className="w-full">
           <div className="p-2 md:p-4 border-b border-red-200 bg-white/80 backdrop-blur-sm">
             <TabsList className="w-full bg-transparent h-10 md:h-12 lg:h-14">
-              <TabsTrigger value="current" className="flex-1 bg-white text-red-600 border border-red-300 hover:bg-red-50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 text-sm font-medium transition-all duration-300 rounded-lg">
-                今日の記録
-              </TabsTrigger>
               <TabsTrigger value="records" className="flex-1 bg-white text-red-600 border border-red-300 hover:bg-red-50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 text-sm font-medium transition-all duration-300 rounded-lg">
                 記録
               </TabsTrigger>
@@ -1034,111 +1031,6 @@ export function WorkoutTab({
           </div>
           
           <div className="h-[calc(100vh-200px)]">
-            <TabsContent value="current" className="m-0 h-full">
-              <ScrollArea className="h-full">
-                <div className="p-4 md:p-6 lg:p-8 space-y-4 bg-gradient-to-br from-gray-50 to-white min-h-full">
-                  <div className="space-y-4">
-            {exercises.length > 0 ? (
-              exercises.map((exercise) => (
-                <div key={exercise.id} className="border border-red-200 rounded-xl p-4 bg-white shadow-lg shadow-red-500/5 hover:shadow-red-500/10 transition-all duration-300 hover:scale-[1.02] relative">
-                  {/* 右上のメニューボタン */}
-                  <div className="absolute top-2 right-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all duration-300 hover:scale-110"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setActiveMenuId(activeMenuId === exercise.id ? null : exercise.id)
-                      }}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                    
-                    {/* ドロップダウンメニュー */}
-                    {activeMenuId === exercise.id && (
-                      <div className="absolute right-0 top-8 bg-white border border-red-200 rounded-xl shadow-xl shadow-red-500/10 z-10 min-w-[120px] backdrop-blur-sm">
-                        <button
-                          className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 text-gray-800 flex items-center gap-2 first:rounded-t-xl transition-all duration-300"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleEditExercise(exercise)
-                          }}
-                        >
-                          <Edit className="h-3 w-3" />
-                          編集
-                        </button>
-                        <button
-                          className="w-full px-4 py-3 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2 last:rounded-b-xl transition-all duration-300"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteExercise(exercise.id)
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          削除
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-4">
-                    {/* 左側：情報エリア */}
-                    <div className="w-1/2">
-                      {/* 項目名、日付、セット数 */}
-                      <div className="mb-3 pr-8">
-                        <h3 className="font-semibold text-sm text-red-400">{exercise.name}</h3>
-                        <p className="text-xs text-gray-400">{exercise.timestamp}</p>
-                        <p className="text-xs text-gray-500 mt-1">{exercise.sets.length}セット</p>
-                      </div>
-                      
-
-                      {/* セット詳細 */}
-                      <div className="space-y-2">
-                        {exercise.sets.map((set, setIndex) => (
-                          <div key={setIndex} className="flex items-center gap-2">
-                            <div className="w-6 text-xs text-center text-red-400 font-semibold">{setIndex + 1}</div>
-                            <div className="w-20">
-                              <div className="bg-gray-200 rounded px-2 py-1 text-center text-xs text-black">
-                                {set.weight || '0'}kg
-                              </div>
-                            </div>
-                            <div className="text-xs text-gray-400">×</div>
-                            <div className="w-20">
-                              <div className="bg-gray-200 rounded px-2 py-1 text-center text-xs text-black">
-                                {set.reps || '0'}回
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {/* 右側：写真表示 */}
-                    {exercise.photo && (
-                      <div className="w-1/2 flex items-center justify-center p-1">
-                        <div className="w-full h-full max-w-full max-h-48">
-                          <img 
-                            src={exercise.photo} 
-                            alt="ワークアウト写真" 
-                            className="w-full h-full object-cover rounded-md border border-red-900/30"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center text-gray-400 py-8">
-                <p>右下の＋ボタンから種目を追加してください</p>
-              </div>
-                    )}
-                  </div>
-                </div>
-              </ScrollArea>
-            </TabsContent>
-            
             <TabsContent value="history" className="m-0 h-full">
               <ScrollArea className="h-full">
                 <div className="p-4 bg-gradient-to-br from-gray-50 to-white min-h-full">
@@ -1291,7 +1183,7 @@ export function WorkoutTab({
                             value={recordMemo[date] || ''}
                             onChange={(e) => setRecordMemo(prev => ({ ...prev, [date]: e.target.value }))}
                             placeholder="今日のトレーニングについてメモを書いてください..."
-                            className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                            className="w-full p-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
                             rows={3}
                           />
                           
@@ -1299,7 +1191,6 @@ export function WorkoutTab({
                           <Button 
                             onClick={() => handleDailyPost(date)}
                             className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-3 rounded-lg shadow-lg transition-all duration-300 hover:scale-[1.02]"
-                            disabled={!recordMemo[date]?.trim()}
                           >
                             <Share2 className="h-4 w-4 mr-2" />
                             この日の記録を投稿する
