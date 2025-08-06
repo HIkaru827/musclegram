@@ -1031,6 +1031,83 @@ export function WorkoutTab({
           </div>
           
           <div className="h-[calc(100vh-200px)]">
+            <TabsContent value="records" className="m-0 h-full">
+              <ScrollArea className="h-full">
+                <div className="p-4 bg-gradient-to-br from-gray-50 to-white min-h-full">
+                  {Object.entries(getExercisesByDate()).length > 0 ? (
+                    Object.entries(getExercisesByDate()).map(([date, dayExercises]) => (
+                      <div key={date} className="mb-6 p-4 bg-white rounded-xl border border-red-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-red-600 mb-4">
+                          {formatDateJapanese(date)}
+                        </h3>
+                        
+                        {/* その日の筋トレ記録 */}
+                        <div className="space-y-3 mb-4">
+                          {dayExercises.map((exercise) => (
+                            <div key={exercise.id} className="p-3 bg-gray-50 rounded-lg border">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-semibold text-gray-800">{exercise.name}</h4>
+                                  <p className="text-sm text-gray-500">{exercise.sets.length}セット</p>
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {exercise.timestamp.split(' ')[1]}
+                                </div>
+                              </div>
+                              
+                              {/* セット詳細 */}
+                              <div className="mt-2 space-y-1">
+                                {exercise.sets.map((set, index) => (
+                                  <div key={index} className="flex gap-4 text-sm text-gray-600">
+                                    <span>セット{index + 1}:</span>
+                                    <span>{set.weight}kg × {set.reps}回</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* メモ入力欄 */}
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium text-gray-700">
+                            この日のメモ
+                          </label>
+                          <textarea
+                            value={recordMemo[date] || ''}
+                            onChange={(e) => setRecordMemo(prev => ({ ...prev, [date]: e.target.value }))}
+                            placeholder="今日のトレーニングについてメモを書いてください..."
+                            className="w-full p-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                            rows={3}
+                          />
+                          
+                          {/* 投稿ボタン */}
+                          <Button 
+                            onClick={() => handleDailyPost(date)}
+                            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-3 rounded-lg shadow-lg transition-all duration-300 hover:scale-[1.02]"
+                          >
+                            <Share2 className="h-4 w-4 mr-2" />
+                            この日の記録を投稿する
+                          </Button>
+                          
+                          {dailyPost[date] && (
+                            <div className="text-sm text-green-600 text-center">
+                              ✓ 投稿済み
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-400 py-8">
+                      <p>まだ記録がありません</p>
+                      <p className="text-sm mt-2">筋トレを記録して投稿しましょう！</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
             <TabsContent value="history" className="m-0 h-full">
               <ScrollArea className="h-full">
                 <div className="p-4 bg-gradient-to-br from-gray-50 to-white min-h-full">
@@ -1133,83 +1210,6 @@ export function WorkoutTab({
                       )}
                     </div>
                   </div>
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent value="records" className="m-0 h-full">
-              <ScrollArea className="h-full">
-                <div className="p-4 bg-gradient-to-br from-gray-50 to-white min-h-full">
-                  {Object.entries(getExercisesByDate()).length > 0 ? (
-                    Object.entries(getExercisesByDate()).map(([date, dayExercises]) => (
-                      <div key={date} className="mb-6 p-4 bg-white rounded-xl border border-red-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-red-600 mb-4">
-                          {formatDateJapanese(date)}
-                        </h3>
-                        
-                        {/* その日の筋トレ記録 */}
-                        <div className="space-y-3 mb-4">
-                          {dayExercises.map((exercise) => (
-                            <div key={exercise.id} className="p-3 bg-gray-50 rounded-lg border">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h4 className="font-semibold text-gray-800">{exercise.name}</h4>
-                                  <p className="text-sm text-gray-500">{exercise.sets.length}セット</p>
-                                </div>
-                                <div className="text-xs text-gray-400">
-                                  {exercise.timestamp.split(' ')[1]}
-                                </div>
-                              </div>
-                              
-                              {/* セット詳細 */}
-                              <div className="mt-2 space-y-1">
-                                {exercise.sets.map((set, index) => (
-                                  <div key={index} className="flex gap-4 text-sm text-gray-600">
-                                    <span>セット{index + 1}:</span>
-                                    <span>{set.weight}kg × {set.reps}回</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        {/* メモ入力欄 */}
-                        <div className="space-y-3">
-                          <label className="text-sm font-medium text-gray-700">
-                            この日のメモ
-                          </label>
-                          <textarea
-                            value={recordMemo[date] || ''}
-                            onChange={(e) => setRecordMemo(prev => ({ ...prev, [date]: e.target.value }))}
-                            placeholder="今日のトレーニングについてメモを書いてください..."
-                            className="w-full p-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
-                            rows={3}
-                          />
-                          
-                          {/* 投稿ボタン */}
-                          <Button 
-                            onClick={() => handleDailyPost(date)}
-                            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-3 rounded-lg shadow-lg transition-all duration-300 hover:scale-[1.02]"
-                          >
-                            <Share2 className="h-4 w-4 mr-2" />
-                            この日の記録を投稿する
-                          </Button>
-                          
-                          {dailyPost[date] && (
-                            <div className="text-sm text-green-600 text-center">
-                              ✓ 投稿済み
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center text-gray-400 py-8">
-                      <p>まだ記録がありません</p>
-                      <p className="text-sm mt-2">筋トレを記録して投稿しましょう！</p>
-                    </div>
-                  )}
                 </div>
               </ScrollArea>
             </TabsContent>
