@@ -30,7 +30,6 @@ interface Exercise {
   }>
   timestamp: string
   photo?: string
-  memo?: string
   postId?: string
 }
 
@@ -54,6 +53,8 @@ export function WorkoutTab({
   const [selectedDateExercises, setSelectedDateExercises] = useState<Exercise[]>([])
   const [isDateDetailOpen, setIsDateDetailOpen] = useState(false)
   const [selectedDateForNewWorkout, setSelectedDateForNewWorkout] = useState<Date | null>(null)
+  const [dailyPost, setDailyPost] = useState<{[key: string]: string}>({})
+  const [recordMemo, setRecordMemo] = useState<{[key: string]: string}>({})
 
   // 有効数字2桁でフォーマットする関数
   const formatToTwoSignificantDigits = (num: number): string => {
@@ -70,6 +71,71 @@ export function WorkoutTab({
       return rounded.toFixed(1)
     } else {
       return rounded.toFixed(2)
+    }
+  }
+
+  // 日付別にエクササイズをグループ化する関数
+  const getExercisesByDate = () => {
+    const groupedExercises: {[key: string]: Exercise[]} = {}
+    
+    exercises.forEach((exercise) => {
+      const date = exercise.timestamp.split(' ')[0] // 日付部分のみを取得
+      if (!groupedExercises[date]) {
+        groupedExercises[date] = []
+      }
+      groupedExercises[date].push(exercise)
+    })
+    
+    // 日付順でソート（新しい順）
+    const sortedDates = Object.keys(groupedExercises).sort((a, b) => {
+      return new Date(b).getTime() - new Date(a).getTime()
+    })
+    
+    const result: {[key: string]: Exercise[]} = {}
+    sortedDates.forEach(date => {
+      result[date] = groupedExercises[date]
+    })
+    
+    return result
+  }
+
+  // 日付を○月○日形式でフォーマットする関数
+  const formatDateJapanese = (dateStr: string): string => {
+    const date = new Date(dateStr)
+    return `${date.getMonth() + 1}月${date.getDate()}日`
+  }
+
+  // 日ごとの投稿をみんなの投稿に送信する関数
+  const handleDailyPost = async (date: string) => {
+    const memo = recordMemo[date] || ''
+    const exercisesOnDate = getExercisesByDate()[date] || []
+    
+    if (exercisesOnDate.length === 0) {
+      alert('投稿する記録がありません')
+      return
+    }
+    
+    try {
+      // 投稿データを作成
+      const postData = {
+        userId: currentUser.id,
+        userName: currentUser.displayName,
+        userAvatar: currentUser.avatar,
+        content: memo,
+        exercises: exercisesOnDate,
+        date: date,
+        timestamp: new Date().toISOString(),
+        likes: 0,
+        comments: []
+      }
+      
+      await firestorePosts.add(postData)
+      setDailyPost(prev => ({ ...prev, [date]: memo }))
+      setRecordMemo(prev => ({ ...prev, [date]: '' }))
+      alert('投稿が完了しました！')
+    } catch (error) {
+      console.error('投稿エラー:', error)
+      alert('投稿に失敗しました')
     }
   }
 
@@ -701,7 +767,6 @@ export function WorkoutTab({
           id: exercise.id,
           name: exercise.name,
           sets: exercise.sets,
-          memo: exercise.memo,
           photo: exercise.photo
         },
         timestamp: exercise.timestamp
@@ -761,7 +826,7 @@ export function WorkoutTab({
     setExerciseDeleteConfirmation(null)
   }
 
-  const updateExercise = async (exerciseId: number, updatedSets: { weight: string; reps: string }[], photo?: string, memo?: string, name?: string) => {
+  const updateExercise = async (exerciseId: number, updatedSets: { weight: string; reps: string }[], photo?: string, name?: string) => {
     const targetExercise = exercises.find(exercise => exercise.id === exerciseId)
     if (!targetExercise) return
 
@@ -769,7 +834,6 @@ export function WorkoutTab({
       ...targetExercise, 
       sets: updatedSets, 
       photo, 
-      memo, 
       name: name || targetExercise.name 
     }
 
@@ -781,7 +845,7 @@ export function WorkoutTab({
     // Firestoreの投稿も更新
     try {
       if (targetExercise.postId) {
-        const postContent = memo || `${updatedExercise.name}を投稿しました！`
+        const postContent = `${updatedExercise.name}を投稿しました！`
         
         await firestorePosts.update(targetExercise.postId, {
           content: postContent,
@@ -789,7 +853,6 @@ export function WorkoutTab({
             id: updatedExercise.id,
             name: updatedExercise.name,
             sets: updatedExercise.sets,
-            memo: updatedExercise.memo,
             photo: updatedExercise.photo
           }
         })
@@ -817,7 +880,7 @@ export function WorkoutTab({
     setEditingExercise(null)
   }
 
-  const addExerciseFromDetail = (exerciseName: string, sets: { weight: string; reps: string }[], photo?: string, memo?: string) => {
+  const addExerciseFromDetail = (exerciseName: string, sets: { weight: string; reps: string }[], photo?: string) => {
     const validSets = sets.filter(set => set.weight && set.reps)
     if (validSets.length > 0) {
       // 選択された日付がある場合はその日付を使用、なければ現在日時
@@ -835,7 +898,6 @@ export function WorkoutTab({
         sets: validSets,
         timestamp: timestamp,
         photo: photo,
-        memo: memo,
       }
       const updatedExercises = [...exercises, newExercise]
       setExercises(updatedExercises)
@@ -962,6 +1024,9 @@ export function WorkoutTab({
               <TabsTrigger value="current" className="flex-1 bg-white text-red-600 border border-red-300 hover:bg-red-50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 text-sm font-medium transition-all duration-300 rounded-lg">
                 今日の記録
               </TabsTrigger>
+              <TabsTrigger value="records" className="flex-1 bg-white text-red-600 border border-red-300 hover:bg-red-50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 text-sm font-medium transition-all duration-300 rounded-lg">
+                記録
+              </TabsTrigger>
               <TabsTrigger value="history" className="flex-1 bg-white text-red-600 border border-red-300 hover:bg-red-50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 text-sm font-medium transition-all duration-300 rounded-lg">
                 履歴
               </TabsTrigger>
@@ -1027,16 +1092,6 @@ export function WorkoutTab({
                         <p className="text-xs text-gray-500 mt-1">{exercise.sets.length}セット</p>
                       </div>
                       
-                      {/* メモ表示 */}
-                      {exercise.memo && (
-                        <div className="mb-3 p-2 bg-gray-100 rounded-md border border-red-900/30">
-                          <div className="flex items-center gap-1 mb-1">
-                            <FileText className="h-3 w-3 text-red-400" />
-                            <span className="text-xs text-red-400">メモ</span>
-                          </div>
-                          <p className="text-xs text-gray-600">{exercise.memo}</p>
-                        </div>
-                      )}
 
                       {/* セット詳細 */}
                       <div className="space-y-2">
@@ -1186,6 +1241,84 @@ export function WorkoutTab({
                       )}
                     </div>
                   </div>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="records" className="m-0 h-full">
+              <ScrollArea className="h-full">
+                <div className="p-4 bg-gradient-to-br from-gray-50 to-white min-h-full">
+                  {Object.entries(getExercisesByDate()).length > 0 ? (
+                    Object.entries(getExercisesByDate()).map(([date, dayExercises]) => (
+                      <div key={date} className="mb-6 p-4 bg-white rounded-xl border border-red-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-red-600 mb-4">
+                          {formatDateJapanese(date)}
+                        </h3>
+                        
+                        {/* その日の筋トレ記録 */}
+                        <div className="space-y-3 mb-4">
+                          {dayExercises.map((exercise) => (
+                            <div key={exercise.id} className="p-3 bg-gray-50 rounded-lg border">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-semibold text-gray-800">{exercise.name}</h4>
+                                  <p className="text-sm text-gray-500">{exercise.sets.length}セット</p>
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {exercise.timestamp.split(' ')[1]}
+                                </div>
+                              </div>
+                              
+                              {/* セット詳細 */}
+                              <div className="mt-2 space-y-1">
+                                {exercise.sets.map((set, index) => (
+                                  <div key={index} className="flex gap-4 text-sm text-gray-600">
+                                    <span>セット{index + 1}:</span>
+                                    <span>{set.weight}kg × {set.reps}回</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* メモ入力欄 */}
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium text-gray-700">
+                            この日のメモ
+                          </label>
+                          <textarea
+                            value={recordMemo[date] || ''}
+                            onChange={(e) => setRecordMemo(prev => ({ ...prev, [date]: e.target.value }))}
+                            placeholder="今日のトレーニングについてメモを書いてください..."
+                            className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                            rows={3}
+                          />
+                          
+                          {/* 投稿ボタン */}
+                          <Button 
+                            onClick={() => handleDailyPost(date)}
+                            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-3 rounded-lg shadow-lg transition-all duration-300 hover:scale-[1.02]"
+                            disabled={!recordMemo[date]?.trim()}
+                          >
+                            <Share2 className="h-4 w-4 mr-2" />
+                            この日の記録を投稿する
+                          </Button>
+                          
+                          {dailyPost[date] && (
+                            <div className="text-sm text-green-600 text-center">
+                              ✓ 投稿済み
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-400 py-8">
+                      <p>まだ記録がありません</p>
+                      <p className="text-sm mt-2">筋トレを記録して投稿しましょう！</p>
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -1400,16 +1533,6 @@ export function WorkoutTab({
                         <p className="text-xs text-gray-600 mt-1">{exercise.sets.length}セット</p>
                       </div>
                       
-                      {/* メモ表示 */}
-                      {exercise.memo && (
-                        <div className="mb-3 p-2 bg-red-50 rounded-lg border border-red-200/50">
-                          <div className="flex items-center gap-1 mb-1">
-                            <FileText className="h-3 w-3 text-gray-600" />
-                            <span className="text-xs text-gray-600 font-medium">メモ</span>
-                          </div>
-                          <p className="text-xs text-gray-700">{exercise.memo}</p>
-                        </div>
-                      )}
 
                       {/* セット詳細 */}
                       <div className="space-y-2">
@@ -1501,7 +1624,6 @@ interface Exercise {
   }>
   timestamp: string
   photo?: string
-  memo?: string
   postId?: string
 }
 
@@ -1713,7 +1835,7 @@ function ExerciseEditDetail({
   onDelete
 }: { 
   exercise: Exercise
-  onUpdate: (exerciseId: number, sets: { weight: string; reps: string }[], photo?: string, memo?: string, name?: string) => void
+  onUpdate: (exerciseId: number, sets: { weight: string; reps: string }[], photo?: string, name?: string) => void
   customExercises: {[key: string]: string[]}
   onCancel: () => void
   onDelete?: (exerciseId: number) => void
@@ -1747,7 +1869,6 @@ function ExerciseEditDetail({
   }
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ setId: number; setIndex: number } | null>(null)
   const [photo, setPhoto] = useState<string>(exercise.photo || "")
-  const [memo, setMemo] = useState<string>(exercise.memo || "")
   const [exerciseName, setExerciseName] = useState<string>(exercise.name)
   const [isSelectingExercise, setIsSelectingExercise] = useState<boolean>(false)
   const [editingExerciseInModal, setEditingExerciseInModal] = useState<{bodyPart: string, oldName: string, newName: string} | null>(null)
@@ -1803,7 +1924,7 @@ function ExerciseEditDetail({
       weight: set.weight,
       reps: set.reps
     }))
-    onUpdate(exercise.id, setsData, photo, memo, exerciseName)
+    onUpdate(exercise.id, setsData, photo, exerciseName)
   }
 
   const handleExerciseSelect = (selectedExercise: string) => {
@@ -2104,20 +2225,6 @@ function ExerciseEditDetail({
           )}
         </div>
 
-        {/* メモ入力 */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-red-600" />
-            <span className="text-sm font-semibold text-red-600">メモ</span>
-          </div>
-          <textarea
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            placeholder="メモを入力してください..."
-            className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-colors duration-200"
-            rows={3}
-          />
-        </div>
       </div>
 
       {/* アクションボタン */}
@@ -2183,7 +2290,7 @@ function ExerciseDetail({
   selectedDate
 }: { 
   exerciseName: string
-  onComplete: (exerciseName: string, sets: { weight: string; reps: string }[], photo?: string, memo?: string) => void
+  onComplete: (exerciseName: string, sets: { weight: string; reps: string }[], photo?: string) => void
   currentUser: UserAccount
   selectedDate?: Date | null
 }) {
@@ -2196,7 +2303,6 @@ function ExerciseDetail({
   const [inputValue, setInputValue] = useState("")
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ setId: number; setIndex: number } | null>(null)
   const [photo, setPhoto] = useState<string>("")
-  const [memo, setMemo] = useState<string>("")
   
   // 有効数字2桁でフォーマットする関数
   const formatToTwoSignificantDigits = (num: number): string => {
@@ -2298,7 +2404,7 @@ function ExerciseDetail({
       weight: set.weight,
       reps: set.reps
     }))
-    onComplete(exerciseName, setsData, photo, memo)
+    onComplete(exerciseName, setsData, photo)
   }
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2584,20 +2690,6 @@ function ExerciseDetail({
           )}
         </div>
 
-        {/* メモ入力 */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-red-600" />
-            <span className="text-sm font-semibold text-red-600">メモ</span>
-          </div>
-          <textarea
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            placeholder="メモを入力してください..."
-            className="w-full p-3 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-colors duration-200"
-            rows={3}
-          />
-        </div>
       </div>
 
       {/* アクションボタン */}
@@ -2606,7 +2698,7 @@ function ExerciseDetail({
           className="w-full bg-red-600 hover:bg-red-700 text-white font-medium text-lg py-3 rounded-lg transition-colors duration-200"
           onClick={handlePost}
         >
-          <Share2 className="h-4 w-4 mr-1" /> 投稿
+          <Save className="h-4 w-4 mr-1" /> 記録
         </Button>
       </div>
 
