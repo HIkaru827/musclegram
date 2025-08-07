@@ -78,7 +78,16 @@ export function WorkoutTab({
   const getExercisesByDate = () => {
     const groupedExercises: {[key: string]: Exercise[]} = {}
     
+    // exercisesが配列であることを確認
+    if (!Array.isArray(exercises)) {
+      return {}
+    }
+    
     exercises.forEach((exercise) => {
+      if (!exercise || !exercise.timestamp) {
+        return // 不正なデータをスキップ
+      }
+      
       const date = exercise.timestamp.split(' ')[0] // 日付部分のみを取得
       if (!groupedExercises[date]) {
         groupedExercises[date] = []
@@ -93,7 +102,7 @@ export function WorkoutTab({
     
     const result: {[key: string]: Exercise[]} = {}
     sortedDates.forEach(date => {
-      result[date] = groupedExercises[date]
+      result[date] = groupedExercises[date] || []
     })
     
     return result
@@ -216,8 +225,9 @@ export function WorkoutTab({
       const exerciseMaxMap: { [exerciseName: string]: number } = {}
       
       // 全ての運動記録から各種目の最大1RMを計算
-      exercises.forEach((exercise) => {
-        if (exercise.sets && exercise.sets.length > 0) {
+      if (Array.isArray(exercises)) {
+        exercises.forEach((exercise) => {
+          if (exercise && exercise.sets && Array.isArray(exercise.sets) && exercise.sets.length > 0) {
           exercise.sets.forEach((set) => {
             const weight = parseFloat(set.weight)
             const reps = parseInt(set.reps)
@@ -233,6 +243,7 @@ export function WorkoutTab({
           })
         }
       })
+      }
       
       // 部位別にグループ化
       const bodyPartGroups: { [bodyPart: string]: { name: string; maxOneRM: number }[] } = {}
@@ -1048,7 +1059,7 @@ export function WorkoutTab({
                               <div className="flex justify-between items-start">
                                 <div>
                                   <h4 className="font-semibold text-gray-800">{exercise.name}</h4>
-                                  <p className="text-sm text-gray-500">{exercise.sets.length}セット</p>
+                                  <p className="text-sm text-gray-500">{exercise.sets && Array.isArray(exercise.sets) ? exercise.sets.length : 0}セット</p>
                                 </div>
                                 <div className="text-xs text-gray-400">
                                   {exercise.timestamp.split(' ')[1]}
@@ -1057,12 +1068,12 @@ export function WorkoutTab({
                               
                               {/* セット詳細 */}
                               <div className="mt-2 space-y-1">
-                                {exercise.sets.map((set, index) => (
+                                {exercise.sets && Array.isArray(exercise.sets) ? exercise.sets.map((set, index) => (
                                   <div key={index} className="flex gap-4 text-sm text-gray-600">
                                     <span>セット{index + 1}:</span>
                                     <span>{set.weight}kg × {set.reps}回</span>
                                   </div>
-                                ))}
+                                )) : null}
                               </div>
                             </div>
                           ))}
