@@ -15,7 +15,7 @@ export interface FirestorePost {
   id: string
   userId: string
   content: string
-  exercise: {
+  exercise?: {
     id: number
     name: string
     sets: Array<{
@@ -25,6 +25,20 @@ export interface FirestorePost {
     memo?: string
     photo?: string
   }
+  exercises?: Array<{
+    id: number
+    name: string
+    sets: Array<{
+      weight: string
+      reps: string
+    }>
+    photo?: string
+  }>
+  userName?: string
+  userAvatar?: string
+  date?: string
+  likes?: number
+  comments?: any[]
   timestamp: string
   createdAt: string
   updatedAt: string

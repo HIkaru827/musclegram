@@ -365,10 +365,10 @@ export function HomeTab({
                         </div>
                         
                         {/* メモ表示 */}
-                        {post.memo && (
+                        {post.exercise?.memo && (
                           <div className="mb-2">
                             <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 border-l-4 border-red-400 ml-6">
-                              {post.memo}
+                              {post.exercise.memo}
                             </p>
                           </div>
                         )}
@@ -487,10 +487,10 @@ export function HomeTab({
                         </div>
                         
                         {/* メモ表示 */}
-                        {post.memo && (
+                        {post.exercise?.memo && (
                           <div className="mb-2">
                             <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 border-l-4 border-red-400 ml-6">
-                              {post.memo}
+                              {post.exercise.memo}
                             </p>
                           </div>
                         )}
@@ -649,6 +649,25 @@ interface Post {
     type: string
     details: string
   }
+  exercise?: {
+    id: number
+    name: string
+    sets: Array<{
+      weight: string
+      reps: string
+    }>
+    memo?: string
+    photo?: string
+  }
+  exercises?: Array<{
+    id: number
+    name: string
+    sets: Array<{
+      weight: string
+      reps: string
+    }>
+    photo?: string
+  }>
   image?: string
   time: string
 }
