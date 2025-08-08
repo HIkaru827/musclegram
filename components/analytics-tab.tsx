@@ -267,6 +267,7 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
 
       // 最大重量を取得
       const getMaxWeight = (exercise: any) => {
+        if (!exercise || !exercise.sets || !Array.isArray(exercise.sets)) return 0
         return exercise.sets.reduce((max: number, set: any) => {
           const weight = parseInt(set.weight) || 0
           return Math.max(max, weight)
@@ -319,8 +320,11 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
     const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000)
 
     const calculateVolume = (exercisesList: any[]) => {
+      if (!Array.isArray(exercisesList)) return 0
       return exercisesList.reduce((total, exercise) => {
+        if (!exercise || !exercise.sets || !Array.isArray(exercise.sets)) return total
         return total + exercise.sets.reduce((setTotal: number, set: any) => {
+          if (!set) return setTotal
           const weight = parseInt(set.weight) || 0
           const reps = parseInt(set.reps) || 0
           return setTotal + (weight * reps)
@@ -362,8 +366,11 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
     const data: VolumeChartData[] = []
 
     const calculateVolume = (exercisesList: any[]) => {
+      if (!Array.isArray(exercisesList)) return 0
       return exercisesList.reduce((total, exercise) => {
+        if (!exercise || !exercise.sets || !Array.isArray(exercise.sets)) return total
         return total + exercise.sets.reduce((setTotal: number, set: any) => {
+          if (!set) return setTotal
           const weight = parseInt(set.weight) || 0
           const reps = parseInt(set.reps) || 0
           return setTotal + (weight * reps)
@@ -445,7 +452,7 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
     
     return exerciseData.map(exercise => {
       // 各セッションの最大1RMを計算
-      const maxOneRM = exercise.sets.reduce((max: number, set: any) => {
+      const maxOneRM = (exercise.sets && Array.isArray(exercise.sets)) ? exercise.sets.reduce((max: number, set: any) => {
         const weight = parseFloat(set.weight) || 0
         const reps = parseInt(set.reps) || 0
         
@@ -455,7 +462,7 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
           return Math.max(max, oneRM)
         }
         return max
-      }, 0)
+      }, 0) : 0
       
       // 日付をフォーマット
       const date = new Date(exercise.timestamp)
@@ -493,11 +500,11 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
     }
 
     exercises.forEach(exercise => {
-      const totalVolume = exercise.sets.reduce((total: number, set: any) => {
+      const totalVolume = (exercise.sets && Array.isArray(exercise.sets)) ? exercise.sets.reduce((total: number, set: any) => {
         const weight = parseInt(set.weight) || 0
         const reps = parseInt(set.reps) || 0
         return total + (weight * reps)
-      }, 0)
+      }, 0) : 0
 
       // 静的な分類マップをまずチェック
       let bodyPart = exerciseBodyPartMapForAnalytics[exercise.name]
@@ -565,10 +572,10 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
         if (exerciseData.length > 0) {
           // 最大重量を取得
           currentValue = exerciseData.reduce((max, ex) => {
-            const maxWeight = ex.sets.reduce((setMax: number, set: any) => {
+            const maxWeight = (ex.sets && Array.isArray(ex.sets)) ? ex.sets.reduce((setMax: number, set: any) => {
               const weight = parseInt(set.weight) || 0
               return Math.max(setMax, weight)
-            }, 0)
+            }, 0) : 0
             return Math.max(max, maxWeight)
           }, 0)
         }
@@ -681,10 +688,10 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
       exercise.name && exercise.name.toLowerCase().includes('ベンチプレス')
     )
     const maxBenchPress = benchPressExercises.reduce((max, exercise) => {
-      const maxWeight = exercise.sets.reduce((maxSet: number, set: any) => {
+      const maxWeight = (exercise.sets && Array.isArray(exercise.sets)) ? exercise.sets.reduce((maxSet: number, set: any) => {
         const weight = parseInt(set.weight) || 0
         return Math.max(maxSet, weight)
-      }, 0)
+      }, 0) : 0
       return Math.max(max, maxWeight)
     }, 0)
 
@@ -1068,10 +1075,10 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
       let currentValue = 0
       if (exerciseData.length > 0) {
         currentValue = exerciseData.reduce((max, ex) => {
-          const maxWeight = ex.sets.reduce((setMax: number, set: any) => {
+          const maxWeight = (ex.sets && Array.isArray(ex.sets)) ? ex.sets.reduce((setMax: number, set: any) => {
             const weight = parseInt(set.weight) || 0
             return Math.max(setMax, weight)
-          }, 0)
+          }, 0) : 0
           return Math.max(max, maxWeight)
         }, 0)
       }
@@ -1153,8 +1160,8 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {strengthProgress.length > 0 ? strengthProgress.map((progress) => (
-                  <div key={progress.exercise} className="bg-gray-50 rounded-lg p-4">
+                {strengthProgress.length > 0 ? strengthProgress.map((progress, index) => (
+                  <div key={`${progress.exercise}-${index}`} className="bg-gray-50 rounded-lg p-4">
                     <div className="mb-3">
                       <span className="font-medium text-gray-900 text-lg">{progress.exercise}</span>
                     </div>
@@ -1211,8 +1218,8 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
                         <div className="px-2 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border-b border-red-100">
                           {bodyPart}
                         </div>
-                        {exercises.map((exercise) => (
-                          <SelectItem key={exercise} value={exercise} className="pl-4">
+                        {exercises.map((exercise, index) => (
+                          <SelectItem key={`${bodyPart}-${exercise}-${index}`} value={exercise} className="pl-4">
                             {exercise}
                           </SelectItem>
                         ))}
@@ -1414,8 +1421,8 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
                 <RadarChart data={bodyPartBalance} />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {bodyPartBalance.map((part) => (
-                  <div key={part.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                {bodyPartBalance.map((part, index) => (
+                  <div key={`bodypart-${index}-${part.name}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <span className="font-medium text-gray-900">{part.name}</span>
                     <span className="text-sm text-gray-600">{part.percentage.toFixed(0)}%</span>
                   </div>
@@ -1443,8 +1450,8 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
             <CardContent>
               <div className="space-y-4">
                 {/* カスタム目標のみ表示 */}
-                {customGoals.length > 0 ? customGoals.map((goal) => (
-                  <div key={goal.id} className="bg-gray-50 rounded-lg p-4">
+                {customGoals.length > 0 ? customGoals.map((goal, index) => (
+                  <div key={goal.id || `goal-${index}-${goal.name}`} className="bg-gray-50 rounded-lg p-4">
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-medium text-gray-900">{goal.name}</span>
                       <div className="flex items-center gap-2">
@@ -1593,8 +1600,8 @@ export function AnalyticsTab({ currentUser }: { currentUser: UserAccount }) {
                   <SelectValue placeholder="種目を選択してください" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  {availableExercises.map((exercise) => (
-                    <SelectItem key={exercise} value={exercise}>
+                  {availableExercises.map((exercise, index) => (
+                    <SelectItem key={`exercise-${index}-${exercise}`} value={exercise}>
                       {exercise}
                     </SelectItem>
                   ))}

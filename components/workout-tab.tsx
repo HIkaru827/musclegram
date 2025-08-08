@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
-import { Dumbbell, Plus, Minus, Share2, Save, Clock, Trash2, ChevronRight, Camera, FileText, ChevronLeft, ChevronRight as ChevronRightIcon, Edit, MoreVertical, Timer, Play, Pause, RotateCcw } from "lucide-react"
+import { Dumbbell, Plus, Minus, Share2, Save, Clock, Trash2, ChevronRight, Camera, FileText, ChevronLeft, ChevronRight as ChevronRightIcon, Edit, Edit2, MoreVertical, Timer, Play, Pause, RotateCcw } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface UserAccount {
@@ -40,7 +40,6 @@ export function WorkoutTab({
 }) {
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [isInitialized, setIsInitialized] = useState(false)
-  const [currentDate, setCurrentDate] = useState(new Date())
   const [workoutDates, setWorkoutDates] = useState<Set<string>>(new Set())
   const [customExercises, setCustomExercises] = useState<{[key: string]: string[]}>({})
   const [isAddingCustomExercise, setIsAddingCustomExercise] = useState<{bodyPart: string} | null>(null)
@@ -49,9 +48,6 @@ export function WorkoutTab({
   const [deleteConfirmation, setDeleteConfirmation] = useState<{bodyPart: string, exerciseName: string} | null>(null)
   const [activeMenuId, setActiveMenuId] = useState<number | null>(null)
   const [exerciseDeleteConfirmation, setExerciseDeleteConfirmation] = useState<number | null>(null)
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedDateExercises, setSelectedDateExercises] = useState<Exercise[]>([])
-  const [isDateDetailOpen, setIsDateDetailOpen] = useState(false)
   const [selectedDateForNewWorkout, setSelectedDateForNewWorkout] = useState<Date | null>(null)
   const [dailyPost, setDailyPost] = useState<{[key: string]: string}>({})
   const [recordMemo, setRecordMemo] = useState<{[key: string]: string}>({})
@@ -74,13 +70,17 @@ export function WorkoutTab({
     }
   }
 
-  // 日付別にエクササイズをグループ化する関数
-  const getExercisesByDate = () => {
-    const groupedExercises: {[key: string]: Exercise[]} = {}
+  // 今日の日付のエクササイズのみを取得する関数
+  const getTodaysExercises = () => {
+    const today = new Date().toISOString().split('T')[0] // 今日の日付 (YYYY-MM-DD)
+    const todaysExercises: Exercise[] = []
+    
+    console.log('Getting today\'s exercises, today:', today)
+    console.log('All exercises:', exercises)
     
     // exercisesが配列であることを確認
     if (!Array.isArray(exercises)) {
-      return {}
+      return todaysExercises
     }
     
     exercises.forEach((exercise) => {
@@ -88,24 +88,28 @@ export function WorkoutTab({
         return // 不正なデータをスキップ
       }
       
-      const date = exercise.timestamp.split(' ')[0] // 日付部分のみを取得
-      if (!groupedExercises[date]) {
-        groupedExercises[date] = []
+      const exerciseDate = exercise.timestamp.split(' ')[0] // 日付部分のみを取得
+      console.log('Comparing exercise date:', exerciseDate, 'with today:', today)
+      if (exerciseDate === today) {
+        console.log('Found today\'s exercise:', exercise)
+        todaysExercises.push(exercise)
       }
-      groupedExercises[date].push(exercise)
     })
     
-    // 日付順でソート（新しい順）
-    const sortedDates = Object.keys(groupedExercises).sort((a, b) => {
-      return new Date(b).getTime() - new Date(a).getTime()
-    })
+    console.log('Today\'s exercises found:', todaysExercises)
+    return todaysExercises
+  }
+
+  // 今日の日付の記録を取得（表示用）
+  const getTodaysRecords = () => {
+    const today = new Date().toISOString().split('T')[0]
+    const todaysExercises = getTodaysExercises()
     
-    const result: {[key: string]: Exercise[]} = {}
-    sortedDates.forEach(date => {
-      result[date] = groupedExercises[date] || []
-    })
+    if (todaysExercises.length === 0) {
+      return {}
+    }
     
-    return result
+    return { [today]: todaysExercises }
   }
 
   // 日付を○月○日形式でフォーマットする関数
@@ -114,33 +118,171 @@ export function WorkoutTab({
     return `${date.getMonth() + 1}月${date.getDate()}日`
   }
 
-  // 日ごとの投稿をみんなの投稿に送信する関数
-  const handleDailyPost = async (date: string) => {
-    const memo = recordMemo[date] || ''
-    const exercisesOnDate = getExercisesByDate()[date] || []
+  // 記録編集機能
+  const handleEditExercise = (exercise: Exercise) => {
+    setEditingExercise(exercise)
+    setCurrentExercise(exercise.name)
+    setIsExerciseDetailOpen(true)
+  }
+
+  // 編集された記録を更新する関数
+  const handleUpdateExercise = async (updatedExercise: Exercise) => {
+    try {
+      // ローカル状態を更新
+      const updatedExercises = exercises.map(exercise => 
+        exercise.id === updatedExercise.id ? updatedExercise : exercise
+      )
+      setExercises(updatedExercises)
+      
+      // ローカルストレージも更新
+      localStorage.setItem(`workoutExercises_${currentUser.id}`, JSON.stringify(updatedExercises))
+      
+      // 投稿済みの場合、Firestoreの投稿も更新
+      if (updatedExercise.postId) {
+        await updatePostedWorkout(updatedExercise)
+      }
+      
+      // グローバル投稿更新のイベントを発火
+      window.dispatchEvent(new CustomEvent('globalPostsUpdated'))
+      
+      alert('記録が更新されました！')
+    } catch (error) {
+      console.error('記録の更新に失敗:', error)
+      alert('記録の更新に失敗しました')
+    }
+  }
+
+  // 投稿済みワークアウトをFirestoreで更新
+  const updatePostedWorkout = async (updatedExercise: Exercise) => {
+    if (!updatedExercise.postId) return
+
+    try {
+      // 既存の投稿を取得
+      const existingPost = await firestorePosts.get(updatedExercise.postId)
+      if (!existingPost) return
+
+      // 投稿がHevyスタイルか旧スタイルかを判定して更新
+      if (existingPost.workout && existingPost.workout.exercises) {
+        // Hevyスタイル: workoutデータを更新
+        const updatedWorkout = { ...existingPost.workout }
+        
+        // 該当する種目を更新
+        updatedWorkout.exercises = updatedWorkout.exercises.map((ex: any) => {
+          if (ex.name === updatedExercise.name) {
+            return {
+              ...ex,
+              sets: updatedExercise.sets || [],
+              photo: updatedExercise.photo,
+              maxWeight: updatedExercise.sets ? Math.max(...updatedExercise.sets.map(set => parseFloat(set.weight) || 0)) : 0,
+              totalReps: updatedExercise.sets ? updatedExercise.sets.reduce((total, set) => total + (parseInt(set.reps) || 0), 0) : 0,
+              totalVolume: updatedExercise.sets ? updatedExercise.sets.reduce((vol, set) => 
+                vol + ((parseFloat(set.weight) || 0) * (parseInt(set.reps) || 0)), 0) : 0
+            }
+          }
+          return ex
+        })
+        
+        // 全体統計を再計算
+        updatedWorkout.totalSets = updatedWorkout.exercises.reduce((total: number, ex: any) => total + (ex.sets?.length || 0), 0)
+        updatedWorkout.totalReps = updatedWorkout.exercises.reduce((total: number, ex: any) => total + (ex.totalReps || 0), 0)
+        updatedWorkout.totalVolume = updatedWorkout.exercises.reduce((total: number, ex: any) => total + (ex.totalVolume || 0), 0)
+        
+        await firestorePosts.update(updatedExercise.postId, { workout: updatedWorkout })
+      } else {
+        // 旧スタイル: exerciseデータを直接更新
+        await firestorePosts.update(updatedExercise.postId, {
+          exercise: {
+            id: updatedExercise.id,
+            name: updatedExercise.name,
+            sets: updatedExercise.sets,
+            photo: updatedExercise.photo
+          }
+        })
+      }
+    } catch (error) {
+      console.error('Firestore投稿の更新に失敗:', error)
+      throw error
+    }
+  }
+
+  // 今日の投稿をみんなの投稿に送信する関数
+  const handleTodayPost = async () => {
+    const today = new Date().toISOString().split('T')[0]
+    const memo = recordMemo[today] || ''
+    const todaysExercises = getTodaysExercises()
     
-    if (exercisesOnDate.length === 0) {
+    if (todaysExercises.length === 0) {
       alert('投稿する記録がありません')
       return
     }
     
     try {
-      // 投稿データを作成
+      // Hevyスタイルの投稿データを作成
+      const workoutSummary = {
+        totalExercises: todaysExercises.length,
+        totalSets: todaysExercises.reduce((total, ex) => total + (ex.sets?.length || 0), 0),
+        totalReps: todaysExercises.reduce((total, ex) => 
+          total + (ex.sets?.reduce((reps, set) => reps + (parseInt(set.reps) || 0), 0) || 0), 0),
+        totalVolume: todaysExercises.reduce((total, ex) => 
+          total + (ex.sets?.reduce((vol, set) => 
+            vol + ((parseFloat(set.weight) || 0) * (parseInt(set.reps) || 0)), 0) || 0), 0),
+        duration: 'N/A', // 今後の実装でワークアウト時間を追加可能
+        exercises: todaysExercises.map(ex => ({
+          name: ex.name,
+          sets: ex.sets || [],
+          photo: ex.photo,
+          bodyPart: ex.bodyPart || 'その他',
+          maxWeight: ex.sets ? Math.max(...ex.sets.map(set => parseFloat(set.weight) || 0)) : 0,
+          totalReps: ex.sets ? ex.sets.reduce((total, set) => total + (parseInt(set.reps) || 0), 0) : 0,
+          totalVolume: ex.sets ? ex.sets.reduce((vol, set) => 
+            vol + ((parseFloat(set.weight) || 0) * (parseInt(set.reps) || 0)), 0) : 0
+        }))
+      }
+
       const postData = {
         userId: currentUser.id,
         userName: currentUser.displayName,
         userAvatar: currentUser.avatar,
-        content: memo,
-        exercises: exercisesOnDate,
-        date: date,
+        content: memo || `💪 今日のワークアウト完了！`,
+        workout: workoutSummary, // Hevyスタイルのワークアウトデータ
+        date: today,
         timestamp: new Date().toISOString(),
         likes: 0,
-        comments: []
+        comments: [],
+        type: 'workout' // 投稿タイプを明確化
       }
       
       const result = await firestorePosts.create(postData)
       console.log('投稿成功:', result)
-      setDailyPost(prev => ({ ...prev, [date]: memo }))
+      setDailyPost(prev => ({ ...prev, [today]: memo }))
+      
+      // 投稿後、今日の記録にpostIdを付与して投稿済みとしてマーク
+      const updatedExercises = exercises.map(exercise => {
+        const exerciseDate = exercise.timestamp.split(' ')[0]
+        if (exerciseDate === today && !exercise.postId) {
+          return { ...exercise, postId: result.id }
+        }
+        return exercise
+      })
+      setExercises(updatedExercises)
+      
+      // ローカルストレージの今日の未投稿記録を投稿済みに更新
+      const localExercisesJson = localStorage.getItem(`workoutExercises_${currentUser.id}`)
+      if (localExercisesJson) {
+        const localExercises = JSON.parse(localExercisesJson)
+        const updatedLocalExercises = localExercises.map((exercise: any) => {
+          const exerciseDate = exercise.timestamp.split(' ')[0]
+          if (exerciseDate === today && !exercise.postId) {
+            return { ...exercise, postId: result.id }
+          }
+          return exercise
+        })
+        localStorage.setItem(`workoutExercises_${currentUser.id}`, JSON.stringify(updatedLocalExercises))
+      }
+      
+      // グローバル投稿更新のイベントを発火
+      window.dispatchEvent(new CustomEvent('globalPostsUpdated'))
+      
       alert('投稿が完了しました！')
     } catch (error) {
       console.error('投稿エラー:', error)
@@ -297,17 +439,46 @@ export function WorkoutTab({
   useEffect(() => {
     const loadExercises = async () => {
       try {
+        // Firestoreからの投稿済み記録を取得
         const userPosts = await firestorePosts.getByUser(currentUser.id)
-        const userExercises = userPosts.map((post: any) => ({
-          ...post.exercise,
-          postId: post.id, // 削除用にpostIdを追加
-          timestamp: post.timestamp
-        }))
-        setExercises(userExercises)
+        const firestoreExercises: Exercise[] = []
+        
+        userPosts.forEach((post: any) => {
+          if (post.workout && post.workout.exercises) {
+            // Hevyスタイルの投稿: workout.exercisesから個別の記録を復元
+            post.workout.exercises.forEach((ex: any) => {
+              firestoreExercises.push({
+                id: `${post.id}-${ex.name}`,
+                name: ex.name,
+                sets: ex.sets || [],
+                photo: ex.photo,
+                timestamp: post.timestamp,
+                postId: post.id
+              })
+            })
+          } else if (post.exercise) {
+            // 旧スタイルの投稿: 直接exerciseデータを使用
+            firestoreExercises.push({
+              ...post.exercise,
+              postId: post.id,
+              timestamp: post.timestamp
+            })
+          }
+        })
+        
+        // ローカルストレージからの未投稿記録を取得
+        const localExercisesJson = localStorage.getItem(`workoutExercises_${currentUser.id}`)
+        const localExercises = localExercisesJson ? JSON.parse(localExercisesJson) : []
+        
+        // 重複を除去してマージ（postIdがあるものは投稿済み、ないものは未投稿）
+        const allExercises = [...firestoreExercises, ...localExercises.filter((local: any) => !local.postId)]
+        
+        console.log('Loaded exercises:', { firestoreCount: firestoreExercises.length, localCount: localExercises.length, totalCount: allExercises.length })
+        setExercises(allExercises)
         
         // ワークアウト日付を抽出（YYYY-MM-DD形式で統一）
         const dates = new Set<string>()
-        userExercises.forEach((exercise: any) => {
+        allExercises.forEach((exercise: any) => {
           if (exercise.timestamp) {
             // タイムスタンプを解析して日付部分のみを取得
             const timestampStr = exercise.timestamp
@@ -344,6 +515,23 @@ export function WorkoutTab({
     
     loadExercises()
 
+    // ローカルストレージ更新時にデータを再読み込み
+    const handleStorageUpdate = () => {
+      console.log('Storage updated, reloading exercises...')
+      loadExercises()
+    }
+
+    // タブ切り替え時や投稿更新時にもリロード
+    const handleGlobalUpdate = () => {
+      console.log('Global update detected, reloading exercises...')
+      loadExercises()
+    }
+    
+    window.addEventListener('workoutDataUpdated', handleStorageUpdate)
+    window.addEventListener('localStorageUpdate', handleStorageUpdate)
+    window.addEventListener('globalPostsUpdated', handleGlobalUpdate)
+    window.addEventListener('focus', handleGlobalUpdate) // ウィンドウフォーカス時
+
     // Firestoreからカスタム種目を読み込み
     const loadCustomExercises = async () => {
       try {
@@ -367,6 +555,14 @@ export function WorkoutTab({
     
     loadCustomExercises()
     setIsInitialized(true)
+
+    // クリーンアップ関数
+    return () => {
+      window.removeEventListener('workoutDataUpdated', handleStorageUpdate)
+      window.removeEventListener('localStorageUpdate', handleStorageUpdate)
+      window.removeEventListener('globalPostsUpdated', handleGlobalUpdate)
+      window.removeEventListener('focus', handleGlobalUpdate)
+    }
   }, [currentUser.id])
 
   // Firebase移行により、LocalStorage保存は不要
@@ -477,6 +673,14 @@ export function WorkoutTab({
       const newExercises = exercises.filter((exercise) => exercise.id !== exerciseId)
       setExercises(newExercises)
       
+      // ローカルストレージからも削除
+      const localExercisesJson = localStorage.getItem(`workoutExercises_${currentUser.id}`)
+      if (localExercisesJson) {
+        const localExercises = JSON.parse(localExercisesJson)
+        const updatedLocalExercises = localExercises.filter((ex: any) => ex.id !== exerciseId)
+        localStorage.setItem(`workoutExercises_${currentUser.id}`, JSON.stringify(updatedLocalExercises))
+      }
+      
       // グローバル投稿更新のイベントを発火
       window.dispatchEvent(new CustomEvent('globalPostsUpdated'))
       
@@ -486,127 +690,12 @@ export function WorkoutTab({
     }
   }
 
-  // カレンダー関連の関数
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear()
-    const month = date.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    const startDate = firstDay.getDay()
-    
-    // 日付をYYYY-MM-DD形式に変換するヘルパー関数
-    const formatDateKey = (d: Date) => {
-      const y = d.getFullYear()
-      const m = (d.getMonth() + 1).toString().padStart(2, '0')
-      const day = d.getDate().toString().padStart(2, '0')
-      return `${y}-${m}-${day}`
-    }
-    
-    const days = []
-    const today = new Date()
-    const todayKey = formatDateKey(today)
-    
-    // 前月の末尾の日々
-    for (let i = startDate - 1; i >= 0; i--) {
-      const prevDate = new Date(year, month, -i)
-      const dateKey = formatDateKey(prevDate)
-      days.push({
-        date: prevDate,
-        isCurrentMonth: false,
-        hasWorkout: workoutDates.has(dateKey),
-        isToday: dateKey === todayKey
-      })
-    }
-    
-    // 当月の日々
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day)
-      const dateKey = formatDateKey(date)
-      const hasWorkout = workoutDates.has(dateKey)
-      
-      // デバッグログ（トレーニング記録がある日のみ）
-      if (hasWorkout) {
-        console.log('Calendar day with workout:', dateKey, 'hasWorkout:', hasWorkout)
-      }
-      
-      days.push({
-        date,
-        isCurrentMonth: true,
-        hasWorkout,
-        isToday: dateKey === todayKey
-      })
-    }
-    
-    // 次月の最初の日々（42日になるまで）
-    const remainingDays = 42 - days.length
-    for (let day = 1; day <= remainingDays; day++) {
-      const nextDate = new Date(year, month + 1, day)
-      const dateKey = formatDateKey(nextDate)
-      days.push({
-        date: nextDate,
-        isCurrentMonth: false,
-        hasWorkout: workoutDates.has(dateKey),
-        isToday: dateKey === todayKey
-      })
-    }
-    
-    return days
-  }
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentDate(prev => {
-      const newDate = new Date(prev)
-      if (direction === 'prev') {
-        newDate.setMonth(prev.getMonth() - 1)
-      } else {
-        newDate.setMonth(prev.getMonth() + 1)
-      }
-      return newDate
-    })
-  }
-
-  const monthNames = [
-    '1月', '2月', '3月', '4月', '5月', '6月',
-    '7月', '8月', '9月', '10月', '11月', '12月'
-  ]
-
-  const dayNames = ['日', '月', '火', '水', '木', '金', '土']
-
-  // 日付クリック時の処理
-  const handleDateClick = (date: Date, hasWorkout: boolean) => {
-    if (hasWorkout) {
-      // 既存の記録がある場合は記録詳細を表示
-      const targetDateKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
-      
-      const dateExercises = exercises.filter(exercise => {
-        if (!exercise.timestamp) return false
-        
-        let exerciseDateKey = ''
-        if (exercise.timestamp.includes('/')) {
-          // "2024/7/29 14:30" 形式の場合
-          const datePart = exercise.timestamp.split(' ')[0] // "2024/7/29"
-          const [year, month, day] = datePart.split('/')
-          exerciseDateKey = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-        } else {
-          const exerciseDate = new Date(exercise.timestamp)
-          const year = exerciseDate.getFullYear()
-          const month = (exerciseDate.getMonth() + 1).toString().padStart(2, '0')
-          const day = exerciseDate.getDate().toString().padStart(2, '0')
-          exerciseDateKey = `${year}-${month}-${day}`
-        }
-        
-        return exerciseDateKey === targetDateKey
-      })
-
-      setSelectedDate(date.toLocaleDateString('ja-JP'))
-      setSelectedDateExercises(dateExercises)
-      setIsDateDetailOpen(true)
-    } else {
-      // 記録がない場合は新規記録作成
-      setSelectedDateForNewWorkout(date)
-      setIsExerciseModalOpen(true)
-    }
+  // 日付クリック時の処理（新規記録作成用）
+  const handleDateClick = (date: Date) => {
+    // 新規記録作成
+    setSelectedDateForNewWorkout(date)
+    setIsExerciseModalOpen(true)
   }
 
   const addCustomExercise = async (bodyPart: string, exerciseName: string) => {
@@ -759,7 +848,7 @@ export function WorkoutTab({
     setIsExerciseDetailOpen(true)
   }
 
-  // グローバル投稿として保存
+  // グローバル投稿として保存（現在は使用していない - 記録tabの投稿ボタンでまとめて投稿）
   const saveGlobalPost = async (exercise: Exercise) => {
     try {
       const postContent = `${exercise.name}を投稿しました！`
@@ -815,7 +904,7 @@ export function WorkoutTab({
     }
   }
 
-  const handleEditExercise = (exercise: Exercise) => {
+  const handleEditExerciseOld = (exercise: Exercise) => {
     setEditingExercise(exercise)
     setIsEditModalOpen(true)
     setActiveMenuId(null)
@@ -896,13 +985,14 @@ export function WorkoutTab({
     if (validSets.length > 0) {
       // 選択された日付がある場合はその日付を使用、なければ現在日時
       const targetDate = selectedDateForNewWorkout || new Date()
-      const timestamp = targetDate.toLocaleString('ja-JP', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      
+      // ISO形式の日付と時刻を作成（YYYY-MM-DD HH:mm形式）
+      const year = targetDate.getFullYear()
+      const month = String(targetDate.getMonth() + 1).padStart(2, '0')
+      const day = String(targetDate.getDate()).padStart(2, '0')
+      const hours = String(targetDate.getHours()).padStart(2, '0')
+      const minutes = String(targetDate.getMinutes()).padStart(2, '0')
+      const timestamp = `${year}-${month}-${day} ${hours}:${minutes}`
       const newExercise = {
         id: Date.now(),
         name: exerciseName,
@@ -920,12 +1010,7 @@ export function WorkoutTab({
         localStorage.setItem(`workoutExercises_${currentUser.id}`, JSON.stringify(limitedExercises))
         setExercises(limitedExercises)
         
-        // グローバル投稿としても保存
-        try {
-          saveGlobalPost(newExercise)
-        } catch (error) {
-          console.error('Failed to call saveGlobalPost:', error)
-        }
+        // 個別記録では投稿しない（記録tabの投稿ボタンでまとめて投稿）
         
         // イベントを発火して他のコンポーネントに通知
         window.dispatchEvent(new CustomEvent('workoutDataUpdated'))
@@ -939,12 +1024,7 @@ export function WorkoutTab({
             localStorage.setItem(`workoutExercises_${currentUser.id}`, JSON.stringify(reducedExercises))
             setExercises(reducedExercises)
             
-            // グローバル投稿としても保存（リトライ時）
-            try {
-              saveGlobalPost(newExercise)
-            } catch (globalPostError) {
-              console.error('Failed to save global post during retry:', globalPostError)
-            }
+            // 個別記録では投稿しない
             
             alert('ストレージ容量不足のため、古いデータを削除しました。')
           } catch (retryError) {
@@ -953,9 +1033,13 @@ export function WorkoutTab({
           }
         }
       }
+      
+      // 記録が保存された後にモーダルを閉じる
+      setIsExerciseDetailOpen(false)
+      setSelectedDateForNewWorkout(null) // リセット
+    } else {
+      alert('有効なセット（重量と回数の両方が入力されている）がありません')
     }
-    setIsExerciseDetailOpen(false)
-    setSelectedDateForNewWorkout(null) // リセット
   }
 
   // タイマー関連の関数
@@ -1035,9 +1119,6 @@ export function WorkoutTab({
               <TabsTrigger value="records" className="flex-1 bg-white text-red-600 border border-red-300 hover:bg-red-50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 text-sm font-medium transition-all duration-300 rounded-lg">
                 記録
               </TabsTrigger>
-              <TabsTrigger value="history" className="flex-1 bg-white text-red-600 border border-red-300 hover:bg-red-50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-red-500/25 text-sm font-medium transition-all duration-300 rounded-lg">
-                履歴
-              </TabsTrigger>
             </TabsList>
           </div>
           
@@ -1045,8 +1126,8 @@ export function WorkoutTab({
             <TabsContent value="records" className="m-0 h-full">
               <ScrollArea className="h-full">
                 <div className="p-4 bg-gradient-to-br from-gray-50 to-white min-h-full">
-                  {Object.entries(getExercisesByDate()).length > 0 ? (
-                    Object.entries(getExercisesByDate()).map(([date, dayExercises]) => (
+                  {Object.entries(getTodaysRecords()).length > 0 ? (
+                    Object.entries(getTodaysRecords()).map(([date, dayExercises]) => (
                       <div key={date} className="mb-6 p-4 bg-white rounded-xl border border-red-200 shadow-sm">
                         <h3 className="text-lg font-bold text-red-600 mb-4">
                           {formatDateJapanese(date)}
@@ -1054,15 +1135,25 @@ export function WorkoutTab({
                         
                         {/* その日の筋トレ記録 */}
                         <div className="space-y-3 mb-4">
-                          {dayExercises.map((exercise) => (
-                            <div key={exercise.id} className="p-3 bg-gray-50 rounded-lg border">
+                          {dayExercises.map((exercise, index) => (
+                            <div key={exercise.id || `exercise-${index}-${exercise.timestamp}`} className="p-3 bg-gray-50 rounded-lg border">
                               <div className="flex justify-between items-start">
-                                <div>
+                                <div className="flex-1">
                                   <h4 className="font-semibold text-gray-800">{exercise.name}</h4>
                                   <p className="text-sm text-gray-500">{exercise.sets && Array.isArray(exercise.sets) ? exercise.sets.length : 0}セット</p>
                                 </div>
-                                <div className="text-xs text-gray-400">
-                                  {exercise.timestamp.split(' ')[1]}
+                                <div className="flex items-center gap-2">
+                                  <div className="text-xs text-gray-400">
+                                    {exercise.timestamp.split(' ')[1]}
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 border-red-300 text-red-600 hover:bg-red-50"
+                                    onClick={() => handleEditExercise(exercise)}
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
                                 </div>
                               </div>
                               
@@ -1094,14 +1185,14 @@ export function WorkoutTab({
                           
                           {/* 投稿ボタン */}
                           <Button 
-                            onClick={() => handleDailyPost(date)}
+                            onClick={() => handleTodayPost()}
                             className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-3 rounded-lg shadow-lg transition-all duration-300 hover:scale-[1.02]"
                           >
                             <Share2 className="h-4 w-4 mr-2" />
-                            この日の記録を投稿する
+                            今日の記録を投稿する
                           </Button>
                           
-                          {dailyPost[date] && (
+                          {dailyPost[new Date().toISOString().split('T')[0]] && (
                             <div className="text-sm text-green-600 text-center">
                               ✓ 投稿済み
                             </div>
@@ -1111,116 +1202,10 @@ export function WorkoutTab({
                     ))
                   ) : (
                     <div className="text-center text-gray-400 py-8">
-                      <p>まだ記録がありません</p>
+                      <p>今日の記録がまだありません</p>
                       <p className="text-sm mt-2">筋トレを記録して投稿しましょう！</p>
                     </div>
                   )}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent value="history" className="m-0 h-full">
-              <ScrollArea className="h-full">
-                <div className="p-4 bg-gradient-to-br from-gray-50 to-white min-h-full">
-                  {/* カレンダーヘッダー */}
-                  <div className="flex items-center justify-between mb-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigateMonth('prev')}
-                      className="p-2 hover:bg-red-50 rounded-lg transition-all duration-300 hover:scale-110"
-                    >
-                      <ChevronLeft className="h-4 w-4 text-red-500" />
-                    </Button>
-                    <h3 className="text-xl font-bold text-red-600">
-                      {currentDate.getFullYear()}年 {monthNames[currentDate.getMonth()]}
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigateMonth('next')}
-                      className="p-2 hover:bg-red-50 rounded-lg transition-all duration-300 hover:scale-110"
-                    >
-                      <ChevronRightIcon className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-
-                  {/* 曜日ヘッダー */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {dayNames.map((day) => (
-                      <div key={day} className="h-8 flex items-center justify-center text-xs font-medium text-red-500">
-                        {day}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* カレンダーグリッド */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {getDaysInMonth(currentDate).map((day, index) => {
-                      const dayNumber = day.date.getDate()
-                      const isToday = day.isToday
-                      const hasWorkout = day.hasWorkout
-                      const isCurrentMonth = day.isCurrentMonth
-
-                      return (
-                        <div
-                          key={index}
-                          onClick={() => handleDateClick(day.date, hasWorkout)}
-                          className={`
-                            h-10 flex items-center justify-center text-sm cursor-pointer relative
-                            ${isCurrentMonth ? 'text-red-500' : 'text-gray-300'}
-                            ${isToday ? 'bg-red-500 text-white rounded-full' : 'hover:bg-gray-100 rounded'}
-                            ${hasWorkout && !isToday ? 'border-4 border-red-500 rounded-full bg-red-50' : ''}
-                            cursor-pointer
-                          `}
-                        >
-                          {dayNumber}
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* 凡例 */}
-                  <div className="mt-4 space-y-2 text-xs text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                      <span>今日</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-4 border-red-500 rounded-full bg-red-50"></div>
-                      <span>トレーニング記録あり</span>
-                    </div>
-                  </div>
-
-                  {/* 最大1RM表示（部位別） */}
-                  <div className="mt-6 bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-                    <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                      <Dumbbell className="h-5 w-5 text-red-500" />
-                      最大1RM記録（部位別）
-                    </h4>
-                    <div className="space-y-4">
-                      {Object.entries(getMaxOneRMByBodyPart()).map(([bodyPart, exercises]) => (
-                        <div key={bodyPart} className="border border-gray-100 rounded-lg p-3">
-                          <h5 className="font-bold text-red-600 mb-2 text-sm">{bodyPart}</h5>
-                          <div className="space-y-1">
-                            {exercises.map((exercise) => (
-                              <div key={exercise.name} className="flex justify-between items-center py-1 px-2 bg-gray-50 rounded">
-                                <span className="text-sm text-gray-700">{exercise.name}</span>
-                                <span className="text-sm font-bold text-red-600">
-                                  {exercise.maxOneRM}kg
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                      {Object.keys(getMaxOneRMByBodyPart()).length === 0 && (
-                        <div className="text-center text-gray-400 py-4">
-                          <p>記録がありません</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -1296,6 +1281,12 @@ export function WorkoutTab({
             onComplete={addExerciseFromDetail}
             currentUser={currentUser}
             selectedDate={selectedDateForNewWorkout}
+            editingExercise={editingExercise}
+            onEditComplete={async (updatedExercise) => {
+              await handleUpdateExercise(updatedExercise)
+              setEditingExercise(null)
+              setIsExerciseDetailOpen(false)
+            }}
           />
         </DialogContent>
       </Dialog>
@@ -1356,163 +1347,6 @@ export function WorkoutTab({
         </div>
       )}
 
-      {/* 日付詳細モーダル */}
-      <Dialog open={isDateDetailOpen} onOpenChange={(open) => {
-        setIsDateDetailOpen(open)
-        if (!open) {
-          // モーダルを閉じる時にデータを再読み込み
-          const loadExercises = async () => {
-            try {
-              const userPosts = await firestorePosts.getByUser(currentUser.id)
-              const userExercises = userPosts.map((post: any) => ({
-                ...post.exercise,
-                postId: post.id,
-                timestamp: post.timestamp
-              }))
-              setExercises(userExercises)
-              
-              // ワークアウト日付を再計算
-              const dates = new Set<string>()
-              userExercises.forEach((exercise: any) => {
-                if (exercise.timestamp) {
-                  const timestampStr = exercise.timestamp
-                  let dateStr = ''
-                  
-                  if (timestampStr.includes('/')) {
-                    const datePart = timestampStr.split(' ')[0]
-                    const [year, month, day] = datePart.split('/')
-                    dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-                  } else {
-                    const date = new Date(timestampStr)
-                    const year = date.getFullYear()
-                    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-                    const day = date.getDate().toString().padStart(2, '0')
-                    dateStr = `${year}-${month}-${day}`
-                  }
-                  
-                  if (dateStr) {
-                    dates.add(dateStr)
-                  }
-                }
-              })
-              setWorkoutDates(dates)
-            } catch (error) {
-              console.error('Failed to reload exercises:', error)
-            }
-          }
-          loadExercises()
-        }
-      }}>
-        <DialogContent className="bg-gradient-to-br from-white via-gray-50 to-white border border-red-200/30 text-gray-900 max-w-md max-h-[80vh] overflow-y-auto rounded-2xl shadow-2xl shadow-red-500/10 backdrop-blur-xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-black">{selectedDate}のトレーニング記録</DialogTitle>
-            <DialogDescription className="text-gray-600 text-sm">
-              この日に記録したトレーニングです
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            {selectedDateExercises.length > 0 ? (
-              selectedDateExercises.map((exercise) => (
-                <div key={exercise.id} className="border border-red-200/50 rounded-xl p-4 bg-white hover:bg-red-50 shadow-md hover:shadow-lg transition-all duration-300 relative">
-                  {/* 編集ボタン */}
-                  <div className="absolute top-2 right-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 text-gray-600 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all duration-300"
-                      onClick={() => handleEditExercise(exercise)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="flex gap-4">
-                    {/* 左側：情報エリア */}
-                    <div className="w-1/2">
-                      {/* 項目名、時間、セット数 */}
-                      <div className="mb-3">
-                        <h3 className="font-bold text-sm text-black">{exercise.name}</h3>
-                        <p className="text-xs text-gray-500 font-medium">{exercise.timestamp}</p>
-                        <p className="text-xs text-gray-600 mt-1">{exercise.sets.length}セット</p>
-                      </div>
-                      
-
-                      {/* セット詳細 */}
-                      <div className="space-y-2">
-                        {exercise.sets.map((set, setIndex) => {
-                          // 1RM計算: (重量 × 回数) / 40 + 重量
-                          const weight = parseFloat(set.weight) || 0
-                          const reps = parseFloat(set.reps) || 0
-                          const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
-                          
-                          return (
-                            <div key={setIndex} className="flex items-center gap-2">
-                              <div className="w-6 text-xs text-center text-black font-bold">{setIndex + 1}</div>
-                              <div className="w-16">
-                                <div className="bg-red-100 border border-red-300 rounded-lg px-2 py-1 text-center text-xs text-gray-900 font-medium">
-                                  {set.weight || '0'}kg
-                                </div>
-                              </div>
-                              <div className="text-xs text-black font-bold">×</div>
-                              <div className="w-16">
-                                <div className="bg-red-100 border border-red-300 rounded-lg px-2 py-1 text-center text-xs text-gray-900 font-medium">
-                                  {set.reps || '0'}回
-                                </div>
-                              </div>
-                              <div className="w-20">
-                                <div className="bg-blue-100 border border-blue-300 rounded-lg px-2 py-1 text-center text-xs text-blue-900 font-medium">
-                                  {oneRM > 0 ? `${formatToTwoSignificantDigits(oneRM)}kg` : '0kg'}
-                                </div>
-                              </div>
-                              <div className="text-xs text-blue-600 font-medium">1RM</div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                    
-                    {/* 右側：写真表示 */}
-                    {exercise.photo && (
-                      <div className="w-1/2 flex items-center justify-center p-1">
-                        <div className="w-full h-full max-w-full max-h-48">
-                          <img 
-                            src={exercise.photo} 
-                            alt="ワークアウト写真" 
-                            className="w-full h-full object-cover rounded-md border border-red-900/30"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-600">
-                <Dumbbell className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-sm">この日の記録はありません</p>
-              </div>
-            )}
-            
-            {/* この日に記録を追加ボタン */}
-            <div className="pt-4 border-t border-red-200/50">
-              <Button
-                onClick={() => {
-                  if (selectedDate) {
-                    const [year, month, day] = selectedDate.split('/').map(Number)
-                    const targetDate = new Date(year, month - 1, day)
-                    setSelectedDateForNewWorkout(targetDate)
-                    setIsDateDetailOpen(false)
-                    setIsExerciseModalOpen(true)
-                  }
-                }}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-medium text-lg py-3 rounded-lg transition-colors duration-200"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                この日に記録を追加
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
@@ -2189,18 +2023,43 @@ function ExerciseDetail({
   exerciseName, 
   onComplete,
   currentUser,
-  selectedDate
+  selectedDate,
+  editingExercise,
+  onEditComplete
 }: { 
   exerciseName: string
   onComplete: (exerciseName: string, sets: { weight: string; reps: string }[], photo?: string) => void
   currentUser: UserAccount
   selectedDate?: Date | null
+  editingExercise?: Exercise | null
+  onEditComplete?: (exercise: Exercise) => void
 }) {
   const [sets, setSets] = useState([
     { id: 1, weight: "", reps: "" },
     { id: 2, weight: "", reps: "" },
     { id: 3, weight: "", reps: "" },
   ])
+
+  // 編集モード時に既存データを設定
+  useEffect(() => {
+    if (editingExercise && editingExercise.sets) {
+      const existingSets = editingExercise.sets.map((set, index) => ({
+        id: index + 1,
+        weight: set.weight,
+        reps: set.reps
+      }))
+      
+      // 最低3セット分を確保
+      while (existingSets.length < 3) {
+        existingSets.push({ id: existingSets.length + 1, weight: "", reps: "" })
+      }
+      
+      setSets(existingSets)
+      if (editingExercise.photo) {
+        setPhoto(editingExercise.photo)
+      }
+    }
+  }, [editingExercise])
   const [editingField, setEditingField] = useState<{ setId: number; field: 'weight' | 'reps' } | null>(null)
   const [inputValue, setInputValue] = useState("")
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ setId: number; setIndex: number } | null>(null)
@@ -2301,12 +2160,27 @@ function ExerciseDetail({
   }
 
   const handlePost = () => {
-    // id を除外してweight, repsのみを送信
-    const setsData = sets.map(set => ({
-      weight: set.weight,
-      reps: set.reps
-    }))
-    onComplete(exerciseName, setsData, photo)
+    // 編集モードか新規作成かで処理を分岐
+    if (editingExercise && onEditComplete) {
+      // 編集モード: 既存のエクササイズを更新
+      const updatedExercise: Exercise = {
+        ...editingExercise,
+        sets: sets.filter(set => set.weight && set.reps).map(set => ({
+          weight: set.weight,
+          reps: set.reps
+        })),
+        photo: photo || editingExercise.photo,
+        timestamp: editingExercise.timestamp // 元のタイムスタンプを保持
+      }
+      onEditComplete(updatedExercise)
+    } else {
+      // 新規作成モード
+      const setsData = sets.map(set => ({
+        weight: set.weight,
+        reps: set.reps
+      }))
+      onComplete(exerciseName, setsData, photo)
+    }
   }
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2600,7 +2474,8 @@ function ExerciseDetail({
           className="w-full bg-red-600 hover:bg-red-700 text-white font-medium text-lg py-3 rounded-lg transition-colors duration-200"
           onClick={handlePost}
         >
-          <Save className="h-4 w-4 mr-1" /> 記録
+          <Save className="h-4 w-4 mr-1" /> 
+          {editingExercise ? '更新' : '記録'}
         </Button>
       </div>
 

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Dumbbell, Settings, FileText, Heart, MessageCircle, Share2, Trash2, LogOut } from "lucide-react"
+import { Dumbbell, Settings, FileText, Heart, MessageCircle, Share2, Trash2, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
 import { FollowList } from "@/components/follow-list"
 import { UserProfile as UserProfileModal } from "@/components/user-profile"
 import { LikesList } from "@/components/likes-list"
@@ -72,6 +72,112 @@ export function ProfileTab({
   const [selectedPostForComments, setSelectedPostForComments] = useState<string | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  
+  // カレンダー関連の状態
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [workoutDates, setWorkoutDates] = useState<Set<string>>(new Set())
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedDateExercises, setSelectedDateExercises] = useState<any[]>([])
+  const [isDateDetailOpen, setIsDateDetailOpen] = useState(false)
+
+  // カレンダー関連のヘルパー
+  const monthNames = [
+    '1月', '2月', '3月', '4月', '5月', '6月',
+    '7月', '8月', '9月', '10月', '11月', '12月'
+  ]
+  
+  const dayNames = ['日', '月', '火', '水', '木', '金', '土']
+
+  // 月の日付を取得する関数
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const today = new Date()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const daysInMonth = lastDay.getDate()
+    const startDay = firstDay.getDay()
+    
+    const days = []
+    
+    // 前月の最後の週の日々
+    const prevMonth = new Date(year, month - 1, 0)
+    for (let i = startDay - 1; i >= 0; i--) {
+      const prevDate = new Date(year, month - 1, prevMonth.getDate() - i)
+      const dateStr = prevDate.toISOString().split('T')[0]
+      days.push({
+        date: prevDate,
+        isCurrentMonth: false,
+        isToday: false,
+        hasWorkout: workoutDates.has(dateStr)
+      })
+    }
+    
+    // 当月の日々
+    for (let day = 1; day <= daysInMonth; day++) {
+      const currentDate = new Date(year, month, day)
+      const dateStr = currentDate.toISOString().split('T')[0]
+      const isToday = currentDate.toDateString() === today.toDateString()
+      days.push({
+        date: currentDate,
+        isCurrentMonth: true,
+        isToday: isToday,
+        hasWorkout: workoutDates.has(dateStr)
+      })
+    }
+    
+    // 次月の最初の日々（42日になるまで）
+    const remainingDays = 42 - days.length
+    for (let day = 1; day <= remainingDays; day++) {
+      const nextDate = new Date(year, month + 1, day)
+      const dateStr = nextDate.toISOString().split('T')[0]
+      days.push({
+        date: nextDate,
+        isCurrentMonth: false,
+        isToday: false,
+        hasWorkout: workoutDates.has(dateStr)
+      })
+    }
+    
+    return days
+  }
+
+  // 月の移動
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev)
+      if (direction === 'prev') {
+        newDate.setMonth(prev.getMonth() - 1)
+      } else {
+        newDate.setMonth(prev.getMonth() + 1)
+      }
+      return newDate
+    })
+  }
+
+  // 日付クリック処理
+  const handleDateClick = (date: Date, hasWorkout: boolean) => {
+    if (!hasWorkout) return
+    
+    const dateStr = date.toLocaleDateString('ja-JP')
+    const isoDateStr = date.toISOString().split('T')[0]
+    
+    // その日のエクササイズを取得
+    const dayExercises = userExercises.filter(exercise => {
+      if (!exercise || !exercise.timestamp) return false
+      try {
+        const exerciseDate = new Date(exercise.timestamp).toISOString().split('T')[0]
+        return exerciseDate === isoDateStr
+      } catch (error) {
+        console.error('Error parsing exercise timestamp:', error)
+        return false
+      }
+    })
+    
+    setSelectedDate(dateStr)
+    setSelectedDateExercises(dayExercises)
+    setIsDateDetailOpen(true)
+  }
 
   // プロフィールデータをcurrentUser（Firestore）から読み込み
   useEffect(() => {
@@ -248,14 +354,27 @@ export function ProfileTab({
         const userPosts = await firestorePosts.getByUser(currentUser.id)
         
         const userExercises = userPosts.map((post: any) => ({
-          ...post.exercise,
-          id: post.id, // 投稿IDを使用（一意性が保証される）
+          // Hevyスタイルのワークアウト投稿に対応
+          ...(post.exercise || {}), // 旧形式の互換性
+          id: post.id,
           postId: post.id,
-          exerciseId: post.exercise.id, // 元のエクササイズIDも保持
+          exerciseId: post.exercise?.id,
           timestamp: post.timestamp,
-          createdAt: post.createdAt // ソート用
+          createdAt: post.createdAt,
+          content: post.content,
+          memo: post.memo,
+          workout: post.workout, // 新しいHevyスタイルのワークアウトデータ
+          type: post.type || 'exercise' // 投稿タイプ
         }))
         setUserExercises(userExercises)
+        
+        // ワークアウト日付を更新
+        const workoutDateSet = new Set<string>()
+        userExercises.forEach(exercise => {
+          const date = new Date(exercise.timestamp).toISOString().split('T')[0]
+          workoutDateSet.add(date)
+        })
+        setWorkoutDates(workoutDateSet)
         
         // いいねデータも読み込む
         if (onLikeUpdate && onCommentUpdate) {
@@ -519,6 +638,7 @@ export function ProfileTab({
         <div className="mt-2 text-xs md:text-sm">{userProfile.bio}</div>
       </div>
 
+      {/* メインコンテンツエリア */}
       <Tabs defaultValue="posts" className="flex-1 flex flex-col min-h-0">
         <div className="border-b border-red-900/50">
           <TabsList className="w-full bg-transparent h-12 md:h-14 lg:h-16">
@@ -534,6 +654,12 @@ export function ProfileTab({
             >
               画像
             </TabsTrigger>
+            <TabsTrigger
+              value="calendar"
+              className="flex-1 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 data-[state=active]:text-black rounded-none text-xs md:text-sm lg:text-base text-black"
+            >
+              カレンダー
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -543,7 +669,7 @@ export function ProfileTab({
               <div className="p-4">
                 {userExercises.length > 0 ? (
                   <div key={refreshKey} className="space-y-4">
-                    {userExercises.map((exercise) => (
+                    {userExercises.filter(exercise => exercise && exercise.postId).map((exercise) => (
                       <div
                         key={exercise.postId}
                         className="border border-gray-200 rounded-lg p-4 bg-white hover:bg-gray-50 transition-colors"
@@ -561,42 +687,111 @@ export function ProfileTab({
                               <h4 className="font-semibold text-sm text-black">{userProfile.displayName}</h4>
                               <span className="text-xs text-gray-500">@{userProfile.username}</span>
                               <span className="text-xs text-gray-500">•</span>
-                              <span className="text-xs text-gray-500">{exercise.timestamp}</span>
+                              <span className="text-xs text-gray-500">
+                                {exercise.timestamp ? new Date(exercise.timestamp).toLocaleString('ja-JP', {
+                                  timeZone: 'Asia/Tokyo',
+                                  year: 'numeric',
+                                  month: '2-digit',
+                                  day: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  hour12: false
+                                }).replace(/\//g, '-') : "先ほど"}
+                              </span>
                             </div>
                           </div>
                         </div>
 
                         {/* 投稿内容 */}
                         <div className="mb-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Dumbbell className="h-4 w-4 text-red-400" />
+                          <div className="mb-2">
                             <span className="font-medium text-sm text-black">
-                              {exercise.memo || `${exercise.name}を投稿しました！`}
+                              {exercise.content || (exercise.memo || (exercise.name ? `${exercise.name}を投稿しました！` : '💪 今日のワークアウト完了！'))}
                             </span>
                           </div>
                           
-                          {/* セット詳細 */}
-                          <div className="bg-gray-50 rounded-lg p-3 mb-3 border">
-                            <div className="text-xs text-gray-600 mb-2 font-medium">トレーニング詳細</div>
-                            <div className="space-y-1">
-                              {exercise.sets.map((set: any, setIndex: number) => {
-                                // 1RM計算: (重量 × 回数) / 40 + 重量
-                                const weight = parseFloat(set.weight) || 0
-                                const reps = parseFloat(set.reps) || 0
-                                const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
-                                
-                                return (
-                                  <div key={setIndex} className="flex items-center gap-2 text-xs">
-                                    <span className="w-12 text-red-400 font-medium">セット{setIndex + 1}:</span>
-                                    <span className="text-gray-700">{set.weight}kg × {set.reps}回</span>
-                                    <span className="text-blue-600 font-medium ml-2">
-                                      1RM: {oneRM > 0 ? `${oneRM.toFixed(1)}kg` : '0kg'}
-                                    </span>
-                                  </div>
-                                )
-                              })}
+                          {/* メモ表示 */}
+                          {exercise.memo && (
+                            <div className="mb-2">
+                              <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 border-l-4 border-red-400 ml-6">
+                                {exercise.memo}
+                              </p>
                             </div>
-                          </div>
+                          )}
+                          
+                          {/* Hevyスタイルのワークアウト詳細 */}
+                          {exercise.workout && exercise.workout.exercises ? (
+                            <div className="bg-gray-50 rounded-lg p-3 mb-3 border">
+                              {/* ワークアウト統計 */}
+                              <div className="flex items-center gap-4 mb-3 text-xs text-gray-600">
+                                <div className="flex items-center gap-1">
+                                  <Dumbbell className="h-3 w-3" />
+                                  <span>{exercise.workout.totalExercises}種目</span>
+                                </div>
+                                <div>{exercise.workout.totalSets}セット</div>
+                                <div>{exercise.workout.totalReps}回</div>
+                                <div>{exercise.workout.totalVolume?.toFixed(0)}kg</div>
+                              </div>
+                              
+                              {/* 種目別詳細 */}
+                              <div className="space-y-3">
+                                {exercise.workout.exercises.map((ex: any, exerciseIndex: number) => (
+                                  <div key={`${exercise.postId}-exercise-${exerciseIndex}`} className="border-l-2 border-red-400 pl-3">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <h4 className="font-semibold text-sm text-black">{ex.name}</h4>
+                                      <div className="text-xs text-gray-500">
+                                        {ex.bodyPart && `${ex.bodyPart} • `}
+                                        最大重量 {ex.maxWeight}kg
+                                      </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {ex.sets.map((set: any, setIndex: number) => {
+                                        const weight = parseFloat(set.weight) || 0
+                                        const reps = parseInt(set.reps) || 0
+                                        const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
+                                        return (
+                                          <div key={`${exercise.postId}-${exerciseIndex}-set-${setIndex}`} 
+                                               className="flex items-center justify-between text-xs">
+                                            <span className="text-gray-600">セット{setIndex + 1}</span>
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-mono">{set.weight}kg × {set.reps}回</span>
+                                              {oneRM > 0 && (
+                                                <span className="text-red-500 font-medium">
+                                                  (1RM: {oneRM.toFixed(1)}kg)
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : exercise.sets && exercise.sets.length > 0 ? (
+                            // 旧形式との互換性
+                            <div className="bg-gray-50 rounded-lg p-3 mb-3 border">
+                              <div className="text-xs text-gray-600 mb-2 font-medium">トレーニング詳細</div>
+                              <div className="space-y-1">
+                                {exercise.sets.map((set: any, setIndex: number) => {
+                                  const weight = parseFloat(set.weight) || 0
+                                  const reps = parseFloat(set.reps) || 0
+                                  const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
+                                  
+                                  return (
+                                    <div key={setIndex} className="flex items-center gap-2 text-xs">
+                                      <span className="w-12 text-red-400 font-medium">セット{setIndex + 1}:</span>
+                                      <span className="text-gray-700">{set.weight}kg × {set.reps}回</span>
+                                      <span className="text-blue-600 font-medium ml-2">
+                                        1RM: {oneRM > 0 ? `${oneRM.toFixed(1)}kg` : '0kg'}
+                                      </span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          ) : null}
 
 
                           {/* 写真 */}
@@ -662,7 +857,7 @@ export function ProfileTab({
               <div className="p-4">
                 {(() => {
                   // 画像を含む投稿のみをフィルタリング
-                  const postsWithImages = userExercises.filter(exercise => exercise.photo)
+                  const postsWithImages = userExercises.filter(exercise => exercise && exercise.photo)
                   
                   if (postsWithImages.length === 0) {
                     return (
@@ -711,8 +906,150 @@ export function ProfileTab({
               </div>
             </ScrollArea>
           </TabsContent>
+
+          <TabsContent value="calendar" className="h-full m-0 p-0 overflow-hidden">
+            <div className="h-full bg-white">
+              {/* カレンダーヘッダー */}
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-gray-800">トレーニング履歴</h2>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateMonth('prev')}
+                      className="h-10 w-10 p-0 border-gray-300 text-gray-600 hover:text-red-500 hover:border-red-300 hover:bg-red-50"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                    <span className="text-xl font-semibold text-gray-800 min-w-32 text-center">
+                      {currentDate.getFullYear()}年{monthNames[currentDate.getMonth()]}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateMonth('next')}
+                      className="h-10 w-10 p-0 border-gray-300 text-gray-600 hover:text-red-500 hover:border-red-300 hover:bg-red-50"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <ScrollArea className="h-full">
+                <div className="p-6">
+                  {/* カレンダー */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    <div className="space-y-6">
+                      {/* 曜日ヘッダー */}
+                      <div className="grid grid-cols-7 gap-2">
+                        {dayNames.map(day => (
+                          <div key={day} className="h-12 flex items-center justify-center text-sm font-semibold text-gray-600 bg-gray-50 rounded-lg">
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* 日付グリッド */}
+                      <div className="grid grid-cols-7 gap-2">
+                        {getDaysInMonth(currentDate).map((day, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleDateClick(day.date, day.hasWorkout)}
+                            className={`
+                              h-12 flex items-center justify-center text-sm font-medium rounded-lg transition-all duration-200
+                              ${day.isCurrentMonth ? 'text-gray-800' : 'text-gray-300'}
+                              ${day.isToday ? 'bg-red-500 text-white font-bold shadow-lg' : ''}
+                              ${day.hasWorkout && !day.isToday ? 'bg-red-100 text-red-800 font-bold border-2 border-red-300 shadow-sm' : ''}
+                              ${day.hasWorkout ? 'cursor-pointer hover:bg-red-200 hover:scale-105' : 'cursor-default'}
+                              ${!day.hasWorkout && day.isCurrentMonth ? 'hover:bg-gray-100' : ''}
+                              ${!day.isCurrentMonth ? 'hover:bg-transparent' : ''}
+                            `}
+                          >
+                            {day.date.getDate()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 凡例 */}
+                  <div className="mt-6 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">凡例</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 bg-red-500 rounded-lg shadow-sm"></div>
+                        <span className="text-sm text-gray-600">今日</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 bg-red-100 border-2 border-red-300 rounded-lg"></div>
+                        <span className="text-sm text-gray-600">トレーニング記録あり</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ScrollArea>
+            </div>
+          </TabsContent>
         </div>
       </Tabs>
+
+      {/* 日付詳細モーダル */}
+      <Dialog open={isDateDetailOpen} onOpenChange={setIsDateDetailOpen}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col bg-white">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-black">{selectedDate}のトレーニング</DialogTitle>
+            <DialogDescription className="text-gray-600">
+              この日のトレーニング記録を確認できます
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-4">
+              {selectedDateExercises.length > 0 ? (
+                selectedDateExercises.map((exercise, index) => (
+                  <div key={(exercise && exercise.id) ? exercise.id : index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Dumbbell className="h-4 w-4 text-red-500" />
+                      <span className="font-medium text-sm text-black">{(exercise && exercise.name) ? exercise.name : '不明な種目'}</span>
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      {(exercise && exercise.sets && Array.isArray(exercise.sets)) ? exercise.sets.map((set: any, setIndex: number) => {
+                        const weight = parseFloat(set.weight) || 0
+                        const reps = parseFloat(set.reps) || 0
+                        const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
+                        
+                        return (
+                          <div key={setIndex} className="flex items-center gap-2">
+                            <span className="w-12 text-red-500 font-medium">セット{setIndex + 1}:</span>
+                            <span className="text-gray-700">{set.weight}kg × {set.reps}回</span>
+                            <span className="text-blue-600 font-medium ml-auto">
+                              1RM: {oneRM > 0 ? `${oneRM.toFixed(1)}kg` : '0kg'}
+                            </span>
+                          </div>
+                        )
+                      }) : (
+                        <div className="text-xs text-gray-500">セット情報がありません</div>
+                      )}
+                    </div>
+                    {(exercise && exercise.memo) && (
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <div className="text-xs text-gray-600 font-medium mb-1">メモ:</div>
+                        <div className="text-xs text-gray-800">{exercise.memo}</div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <Dumbbell className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm">この日のトレーニング記録はありません</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       {/* フォローリストモーダル */}
       <FollowList

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { onAuthStateChanged, signOut } from "firebase/auth"
 import { doc, getDoc, setDoc } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
-import { firestoreNotifications } from "@/lib/firestore-utils"
+// import { firestoreNotifications } from "@/lib/firestore-utils" // まだ無効のまま
 import { HomeTab } from "@/components/home-tab"
 import { WorkoutTab } from "@/components/workout-tab"
 import { AnalyticsTab } from "@/components/analytics-tab"
@@ -69,67 +69,147 @@ export function MobileApp() {
   const [globalUserLikes, setGlobalUserLikes] = useState<Set<string>>(new Set())
   const [globalCommentsCount, setGlobalCommentsCount] = useState<{[postId: string]: number}>({})
 
+  // グローバルなPromise rejectionハンドラー
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection:', event.reason)
+      // 本番環境ではユーザーに優しいエラーメッセージを表示
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Full error details:', event.reason)
+      }
+      // エラーを防ぐ
+      event.preventDefault()
+    }
+
+    const handleError = (event: ErrorEvent) => {
+      console.error('Global error:', event.error)
+      // 本番環境ではユーザーに優しいエラーメッセージを表示
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Full error details:', event.error)
+      }
+    }
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection)
+    window.addEventListener('error', handleError)
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection)
+      window.removeEventListener('error', handleError)
+    }
+  }, [])
+
   // Firebase認証状態の監視
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setIsAuthChecking(true)
-      
-      if (firebaseUser) {
+    let timeoutId: NodeJS.Timeout | null = null
+    let unsubscribe: (() => void) | null = null
+    
+    console.log('Initializing Firebase auth...')
+    
+    // 15秒後に強制的にローディングを終了（フォールバック）
+    timeoutId = setTimeout(() => {
+      console.warn('Authentication check timed out, using offline mode...')
+      // タイムアウト時はダミーユーザーを設定
+      const fallbackUser: UserAccount = {
+        id: 'offline-user',
+        email: 'offline@example.com',
+        displayName: 'オフラインユーザー',
+        username: 'offline',
+        bio: 'オフラインモードで使用中',
+        avatar: 'https://ui-avatars.com/api/?name=オフライン&background=dc2626&color=ffffff&size=80',
+        createdAt: new Date().toISOString()
+      }
+      setCurrentUser(fallbackUser)
+      setIsAuthChecking(false)
+    }, 15000)
+    
+    try {
+      unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        console.log('Auth state changed:', firebaseUser ? 'User logged in' : 'No user')
+        
+        // タイムアウトをクリア
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          timeoutId = null
+        }
+        
         try {
-          // Firestoreからユーザー情報を取得
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
-          
-          if (userDoc.exists()) {
-            const userData = userDoc.data()
-            const userAccount: UserAccount = {
-              id: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              displayName: userData.displayName || firebaseUser.displayName || '',
-              username: userData.username || '',
-              bio: userData.bio || '',
-              avatar: userData.avatar || firebaseUser.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userData.displayName || firebaseUser.displayName || '新規ユーザー') + '&background=dc2626&color=ffffff&size=80',
-              createdAt: userData.createdAt || new Date().toISOString()
+          if (firebaseUser) {
+            console.log('Loading user data from Firestore...')
+            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+            
+            if (userDoc.exists()) {
+              const userData = userDoc.data()
+              const userAccount: UserAccount = {
+                id: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                displayName: userData.displayName || firebaseUser.displayName || '',
+                username: userData.username || firebaseUser.email?.split('@')[0] || 'user',
+                bio: userData.bio || '',
+                avatar: userData.avatar || firebaseUser.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userData.displayName || firebaseUser.displayName || '新規ユーザー') + '&background=dc2626&color=ffffff&size=80',
+                createdAt: userData.createdAt || new Date().toISOString()
+              }
+              setCurrentUser(userAccount)
+              console.log('User data loaded successfully')
+            } else {
+              console.log('Creating new user document...')
+              const newUserAccount: UserAccount = {
+                id: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                displayName: firebaseUser.displayName || 'ユーザー',
+                username: firebaseUser.email?.split('@')[0] || 'user',
+                bio: '',
+                avatar: firebaseUser.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(firebaseUser.displayName || 'ユーザー') + '&background=dc2626&color=ffffff&size=80',
+                createdAt: new Date().toISOString()
+              }
+              
+              await setDoc(doc(db, 'users', firebaseUser.uid), {
+                displayName: newUserAccount.displayName,
+                username: newUserAccount.username,
+                bio: newUserAccount.bio,
+                avatar: newUserAccount.avatar,
+                email: newUserAccount.email,
+                createdAt: newUserAccount.createdAt,
+                updatedAt: new Date().toISOString()
+              })
+              
+              setCurrentUser(newUserAccount)
+              console.log('New user created successfully')
             }
-            setCurrentUser(userAccount)
-            // 通知数も読み込み
-            loadUnreadNotificationCount(userAccount.id)
           } else {
-            // ユーザードキュメントが存在しない場合は新規作成
-            const newUserAccount: UserAccount = {
-              id: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || 'ユーザー',
-              username: firebaseUser.email?.split('@')[0] || 'user',
-              bio: '',
-              avatar: firebaseUser.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(firebaseUser.displayName || 'ユーザー') + '&background=dc2626&color=ffffff&size=80',
-              createdAt: new Date().toISOString()
-            }
-            
-            // Firestoreにユーザー情報を保存
-            await setDoc(doc(db, 'users', firebaseUser.uid), {
-              displayName: newUserAccount.displayName,
-              username: newUserAccount.username,
-              bio: newUserAccount.bio,
-              avatar: newUserAccount.avatar,
-              email: newUserAccount.email,
-              createdAt: newUserAccount.createdAt,
-              updatedAt: new Date().toISOString()
-            })
-            
-            setCurrentUser(newUserAccount)
+            console.log('No user authenticated')
+            setCurrentUser(null)
           }
         } catch (error) {
-          console.error('Error loading user data:', error)
+          console.error('Error in authentication flow:', error)
           setCurrentUser(null)
         }
-      } else {
+        
+        setIsAuthChecking(false)
+      }, (error) => {
+        console.error('Firebase auth state change error:', error)
+        setIsAuthChecking(false)
         setCurrentUser(null)
+      })
+    } catch (error) {
+      console.error('Failed to initialize Firebase auth:', error)
+      // 初期化に失敗した場合はオフラインモードに
+      const offlineUser: UserAccount = {
+        id: 'offline-user',
+        email: 'offline@example.com',
+        displayName: 'オフラインユーザー',
+        username: 'offline',
+        bio: 'Firebase接続エラーのため、オフラインモードで使用中',
+        avatar: 'https://ui-avatars.com/api/?name=オフライン&background=dc2626&color=ffffff&size=80',
+        createdAt: new Date().toISOString()
       }
-      
+      setCurrentUser(offlineUser)
       setIsAuthChecking(false)
-    })
+    }
 
-    return () => unsubscribe()
+    return () => {
+      if (unsubscribe) unsubscribe()
+      if (timeoutId) clearTimeout(timeoutId)
+    }
   }, [])
 
   // プロフィール更新イベントの監視
@@ -188,13 +268,9 @@ export function MobileApp() {
 
   // 未読通知数を読み込む
   const loadUnreadNotificationCount = async (userId: string) => {
-    try {
-      const count = await firestoreNotifications.getUnreadCount(userId)
-      setUnreadNotificationCount(count)
-    } catch (error) {
-      console.error('Failed to load unread notification count:', error)
-      setUnreadNotificationCount(0)
-    }
+    // 一時的に無効化
+    console.log('Notification loading disabled for debugging')
+    setUnreadNotificationCount(0)
   }
 
   // 認証成功時の処理
@@ -211,8 +287,13 @@ export function MobileApp() {
       setCurrentUser(null)
       setExercises([])
       setActiveTab("home")
+      console.log('Logout successful')
     } catch (error) {
       console.error('Logout error:', error)
+      // エラーが発生してもログアウト状態にする
+      setCurrentUser(null)
+      setExercises([])
+      setActiveTab("home")
     }
   }
 
@@ -283,9 +364,21 @@ export function MobileApp() {
             <Dumbbell className="h-10 w-10 text-white animate-pulse" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-red-400 via-red-500 to-red-600 bg-clip-text text-transparent mb-3">MuscleGram</h1>
-          <div className="flex items-center gap-2 justify-center">
+          <div className="flex items-center gap-2 justify-center mb-4">
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-500 border-t-transparent"></div>
             <p className="text-gray-300 text-sm">読み込み中...</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-500 mb-2">認証状態を確認しています</p>
+            <button 
+              onClick={() => {
+                console.log('Force skip loading...')
+                setIsAuthChecking(false)
+              }}
+              className="text-xs text-red-400 hover:text-red-300 underline"
+            >
+              読み込みをスキップ
+            </button>
           </div>
         </div>
       </div>
@@ -347,6 +440,12 @@ export function MobileApp() {
         <Tabs value={activeTab} onValueChange={(value) => {
           setActiveTab(value)
           localStorage.setItem('musclegram_activeTab', value)
+          // タブ切り替え時にワークアウトデータを再読み込み
+          if (value === 'workout') {
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('globalPostsUpdated'))
+            }, 100)
+          }
         }} className="flex flex-col flex-1">
           {/* Content - フル高さでスクロール可能 */}
           <div className="flex-1 overflow-y-auto pb-20" style={{maxHeight: 'calc(100vh - 64px)'}}>
@@ -545,6 +644,10 @@ export function MobileApp() {
               setActiveTab("workout")
               setViewingUser(null)
               localStorage.setItem('musclegram_activeTab', 'workout')
+              // ワークアウトタブに切り替えた時にデータを再読み込み
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('globalPostsUpdated'))
+              }, 100)
             }}
             className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-300 ${
               activeTab === "workout" 

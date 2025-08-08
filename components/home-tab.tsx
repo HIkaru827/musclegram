@@ -63,31 +63,106 @@ export function HomeTab({
         // ユーザー情報を付加
         const postsWithUsers = await Promise.all(
           firebasePosts.map(async (post) => {
-            const user = await firestoreUsers.get(post.userId)
-            console.log('User data for post:', { postId: post.id, user })
-            return {
-              id: post.id,
-              userId: post.userId,
-              user: {
-                name: user?.displayName || "Unknown User",
-                avatar: user?.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user?.displayName || 'Unknown') + '&background=dc2626&color=ffffff&size=80',
-                username: user?.username || "unknown",
-              },
-              content: post.content,
-              memo: post.exercise.memo || null, // メモを追加
-              workout: {
-                type: post.exercise.name,
-                details: post.exercise.sets.map((set: any, index: number) => {
-                  // 1RM計算: (重量 × 回数) / 40 + 重量
-                  const weight = parseFloat(set.weight) || 0
-                  const reps = parseFloat(set.reps) || 0
-                  const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
-                  return `セット${index + 1}: ${set.weight}kg × ${set.reps}回 (1RM: ${oneRM > 0 ? oneRM.toFixed(1) : '0'}kg)`
-                }).join('\n'),
-                sets: post.exercise.sets, // 元のセットデータも保持
-              },
-              image: post.exercise.photo || undefined,
-              time: post.timestamp || "先ほど",
+            try {
+              const user = await firestoreUsers.get(post.userId)
+              console.log('User data for post:', { postId: post.id, user })
+              return {
+                id: post.id,
+                userId: post.userId,
+                user: {
+                  name: user?.displayName || "Unknown User",
+                  avatar: user?.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user?.displayName || 'Unknown') + '&background=dc2626&color=ffffff&size=80',
+                  username: user?.username || "unknown",
+                },
+                content: post.content,
+                memo: (post.exercise && post.exercise.memo) ? post.exercise.memo : null,
+                workout: post.workout ? {
+                  // Hevyスタイルのワークアウトデータ処理
+                  totalExercises: post.workout.totalExercises || 0,
+                  totalSets: post.workout.totalSets || 0,
+                  totalReps: post.workout.totalReps || 0,
+                  totalVolume: post.workout.totalVolume || 0,
+                  duration: post.workout.duration || 'N/A',
+                  exercises: (post.workout.exercises || []).map((ex: any) => ({
+                    name: ex.name,
+                    sets: ex.sets || [],
+                    photo: ex.photo,
+                    bodyPart: ex.bodyPart || 'その他',
+                    maxWeight: ex.maxWeight || 0,
+                    totalReps: ex.totalReps || 0,
+                    totalVolume: ex.totalVolume || 0
+                  }))
+                } : {
+                  // 旧形式との互換性を保持
+                  type: (post.exercise && post.exercise.name) ? post.exercise.name : '不明な種目',
+                  details: ((post.exercise && post.exercise.sets && Array.isArray(post.exercise.sets)) ? post.exercise.sets.map((set: any, index: number) => {
+                    const weight = parseFloat(set.weight) || 0
+                    const reps = parseFloat(set.reps) || 0
+                    const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
+                    return `セット${index + 1}: ${set.weight}kg × ${set.reps}回 (1RM: ${oneRM > 0 ? oneRM.toFixed(1) : '0'}kg)`
+                  }) : []).join('\n'),
+                  sets: (post.exercise && post.exercise.sets) ? post.exercise.sets : []
+                },
+                image: (post.exercise && post.exercise.photo) ? post.exercise.photo : undefined,
+                time: post.timestamp ? new Date(post.timestamp).toLocaleString('ja-JP', {
+                  timeZone: 'Asia/Tokyo',
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                }).replace(/\//g, '-') : "先ほど",
+              }
+            } catch (userError) {
+              console.error('Failed to load user data for post:', post.id, userError)
+              // ユーザーデータが取得できない場合のフォールバック
+              return {
+                id: post.id,
+                userId: post.userId,
+                user: {
+                  name: "Unknown User",
+                  avatar: 'https://ui-avatars.com/api/?name=Unknown&background=dc2626&color=ffffff&size=80',
+                  username: "unknown",
+                },
+                content: post.content,
+                memo: (post.exercise && post.exercise.memo) ? post.exercise.memo : null,
+                workout: post.workout ? {
+                  totalExercises: post.workout.totalExercises || 0,
+                  totalSets: post.workout.totalSets || 0,
+                  totalReps: post.workout.totalReps || 0,
+                  totalVolume: post.workout.totalVolume || 0,
+                  duration: post.workout.duration || 'N/A',
+                  exercises: (post.workout.exercises || []).map((ex: any) => ({
+                    name: ex.name,
+                    sets: ex.sets || [],
+                    photo: ex.photo,
+                    bodyPart: ex.bodyPart || 'その他',
+                    maxWeight: ex.maxWeight || 0,
+                    totalReps: ex.totalReps || 0,
+                    totalVolume: ex.totalVolume || 0
+                  }))
+                } : {
+                  type: (post.exercise && post.exercise.name) ? post.exercise.name : '不明な種目',
+                  details: ((post.exercise && post.exercise.sets && Array.isArray(post.exercise.sets)) ? post.exercise.sets.map((set: any, index: number) => {
+                    const weight = parseFloat(set.weight) || 0
+                    const reps = parseFloat(set.reps) || 0
+                    const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
+                    return `セット${index + 1}: ${set.weight}kg × ${set.reps}回 (1RM: ${oneRM > 0 ? oneRM.toFixed(1) : '0'}kg)`
+                  }) : []).join('\n'),
+                  sets: (post.exercise && post.exercise.sets) ? post.exercise.sets : []
+                },
+                image: (post.exercise && post.exercise.photo) ? post.exercise.photo : undefined,
+                time: post.timestamp ? new Date(post.timestamp).toLocaleString('ja-JP', {
+                  timeZone: 'Asia/Tokyo',
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                }).replace(/\//g, '-') : "先ほど",
+              }
             }
           })
         )
@@ -168,25 +243,32 @@ export function HomeTab({
       const { firestoreLikes, firestoreComments } = await import('@/lib/firestore-utils')
       
       await Promise.all(posts.map(async (post) => {
-        // グローバル状態に既にデータがある場合はスキップ
-        if (globalLikesCount[post.id] !== undefined && globalCommentsCount[post.id] !== undefined) {
-          return
+        try {
+          // グローバル状態に既にデータがある場合はスキップ
+          if (globalLikesCount[post.id] !== undefined && globalCommentsCount[post.id] !== undefined) {
+            return
+          }
+
+          // いいねデータを取得
+          const likes = await firestoreLikes.getByPost(post.id)
+          const likesCount = likes.length
+          
+          // 現在のユーザーがいいねしているかチェック
+          const userLiked = likes.some(like => like.userId === currentUser.id)
+          
+          // コメント数を取得
+          const comments = await firestoreComments.getByPost(post.id)
+          const commentsCount = comments.length
+
+          // グローバル状態を更新
+          onLikeUpdate(post.id, userLiked, likesCount)
+          onCommentUpdate(post.id, commentsCount)
+        } catch (likeError) {
+          console.error('Failed to load like/comment data for post:', post.id, likeError)
+          // エラーが発生した場合はデフォルト値を設定
+          onLikeUpdate(post.id, false, 0)
+          onCommentUpdate(post.id, 0)
         }
-
-        // いいねデータを取得
-        const likes = await firestoreLikes.getByPost(post.id)
-        const likesCount = likes.length
-        
-        // 現在のユーザーがいいねしているかチェック
-        const userLiked = likes.some(like => like.userId === currentUser.id)
-        
-        // コメント数を取得
-        const comments = await firestoreComments.getByPost(post.id)
-        const commentsCount = comments.length
-
-        // グローバル状態を更新
-        onLikeUpdate(post.id, userLiked, likesCount)
-        onCommentUpdate(post.id, commentsCount)
       }))
     } catch (error) {
       console.error('Failed to load likes data:', error)
@@ -357,31 +439,85 @@ export function HomeTab({
 
                       {/* 投稿内容 */}
                       <div className="mb-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Dumbbell className="h-4 w-4 text-red-400" />
+                        <div className="mb-2">
                           <span className="font-medium text-sm text-black">
                             {post.content}
                           </span>
                         </div>
                         
                         {/* メモ表示 */}
-                        {post.exercise?.memo && (
+                        {(post.memo || post.exercise?.memo) && (
                           <div className="mb-2">
                             <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 border-l-4 border-red-400 ml-6">
-                              {post.exercise.memo}
+                              {post.memo || post.exercise.memo}
                             </p>
                           </div>
                         )}
                         
-                        {/* セット詳細 */}
+                        {/* Hevyスタイルのワークアウト詳細 */}
                         {post.workout && (
                           <div className="bg-gray-50 rounded-lg p-3 mb-3 border">
-                            <div className="text-xs text-gray-600 mb-2 font-medium">トレーニング詳細</div>
-                            <div className="space-y-1">
-                              {post.workout.details.split('\n').map((detail, index) => (
-                                <div key={index} className="text-xs text-gray-700">{detail}</div>
-                              ))}
-                            </div>
+                            {post.workout.exercises && post.workout.exercises.length > 0 ? (
+                              // 新しいHevyスタイル表示
+                              <div>
+                                {/* ワークアウト統計 */}
+                                <div className="flex items-center gap-4 mb-3 text-xs text-gray-600">
+                                  <div className="flex items-center gap-1">
+                                    <Dumbbell className="h-3 w-3" />
+                                    <span>{post.workout.totalExercises}種目</span>
+                                  </div>
+                                  <div>{post.workout.totalSets}セット</div>
+                                  <div>{post.workout.totalReps}回</div>
+                                  <div>{post.workout.totalVolume?.toFixed(0)}kg</div>
+                                </div>
+                                
+                                {/* 種目別詳細 */}
+                                <div className="space-y-3">
+                                  {post.workout.exercises.map((exercise: any, exerciseIndex: number) => (
+                                    <div key={`${post.id}-exercise-${exerciseIndex}`} className="border-l-2 border-red-400 pl-3">
+                                      <div className="flex items-center justify-between mb-1">
+                                        <h4 className="font-semibold text-sm text-black">{exercise.name}</h4>
+                                        <div className="text-xs text-gray-500">
+                                          {exercise.bodyPart && `${exercise.bodyPart} • `}
+                                          最大重量 {exercise.maxWeight}kg
+                                        </div>
+                                      </div>
+                                      <div className="space-y-1">
+                                        {exercise.sets.map((set: any, setIndex: number) => {
+                                          const weight = parseFloat(set.weight) || 0
+                                          const reps = parseInt(set.reps) || 0
+                                          const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
+                                          return (
+                                            <div key={`${post.id}-${exerciseIndex}-set-${setIndex}`} 
+                                                 className="flex items-center justify-between text-xs">
+                                              <span className="text-gray-600">セット{setIndex + 1}</span>
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-mono">{set.weight}kg × {set.reps}回</span>
+                                                {oneRM > 0 && (
+                                                  <span className="text-red-500 font-medium">
+                                                    (1RM: {oneRM.toFixed(1)}kg)
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              // 旧形式との互換性
+                              <div>
+                                <div className="text-xs text-gray-600 mb-2 font-medium">トレーニング詳細</div>
+                                <div className="space-y-1">
+                                  {post.workout.details && post.workout.details.split('\n').map((detail: string, index: number) => (
+                                    <div key={`${post.id}-detail-${index}`} className="text-xs text-gray-700">{detail}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -479,31 +615,85 @@ export function HomeTab({
 
                       {/* 投稿内容 */}
                       <div className="mb-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Dumbbell className="h-4 w-4 text-red-400" />
+                        <div className="mb-2">
                           <span className="font-medium text-sm text-black">
                             {post.content}
                           </span>
                         </div>
                         
                         {/* メモ表示 */}
-                        {post.exercise?.memo && (
+                        {(post.memo || post.exercise?.memo) && (
                           <div className="mb-2">
                             <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 border-l-4 border-red-400 ml-6">
-                              {post.exercise.memo}
+                              {post.memo || post.exercise.memo}
                             </p>
                           </div>
                         )}
                         
-                        {/* セット詳細 */}
+                        {/* Hevyスタイルのワークアウト詳細 */}
                         {post.workout && (
                           <div className="bg-gray-50 rounded-lg p-3 mb-3 border">
-                            <div className="text-xs text-gray-600 mb-2 font-medium">トレーニング詳細</div>
-                            <div className="space-y-1">
-                              {post.workout.details.split('\n').map((detail, index) => (
-                                <div key={index} className="text-xs text-gray-700">{detail}</div>
-                              ))}
-                            </div>
+                            {post.workout.exercises && post.workout.exercises.length > 0 ? (
+                              // 新しいHevyスタイル表示
+                              <div>
+                                {/* ワークアウト統計 */}
+                                <div className="flex items-center gap-4 mb-3 text-xs text-gray-600">
+                                  <div className="flex items-center gap-1">
+                                    <Dumbbell className="h-3 w-3" />
+                                    <span>{post.workout.totalExercises}種目</span>
+                                  </div>
+                                  <div>{post.workout.totalSets}セット</div>
+                                  <div>{post.workout.totalReps}回</div>
+                                  <div>{post.workout.totalVolume?.toFixed(0)}kg</div>
+                                </div>
+                                
+                                {/* 種目別詳細 */}
+                                <div className="space-y-3">
+                                  {post.workout.exercises.map((exercise: any, exerciseIndex: number) => (
+                                    <div key={`${post.id}-exercise-${exerciseIndex}`} className="border-l-2 border-red-400 pl-3">
+                                      <div className="flex items-center justify-between mb-1">
+                                        <h4 className="font-semibold text-sm text-black">{exercise.name}</h4>
+                                        <div className="text-xs text-gray-500">
+                                          {exercise.bodyPart && `${exercise.bodyPart} • `}
+                                          最大重量 {exercise.maxWeight}kg
+                                        </div>
+                                      </div>
+                                      <div className="space-y-1">
+                                        {exercise.sets.map((set: any, setIndex: number) => {
+                                          const weight = parseFloat(set.weight) || 0
+                                          const reps = parseInt(set.reps) || 0
+                                          const oneRM = weight > 0 && reps > 0 ? (weight * reps) / 40 + weight : 0
+                                          return (
+                                            <div key={`${post.id}-${exerciseIndex}-set-${setIndex}`} 
+                                                 className="flex items-center justify-between text-xs">
+                                              <span className="text-gray-600">セット{setIndex + 1}</span>
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-mono">{set.weight}kg × {set.reps}回</span>
+                                                {oneRM > 0 && (
+                                                  <span className="text-red-500 font-medium">
+                                                    (1RM: {oneRM.toFixed(1)}kg)
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              // 旧形式との互換性
+                              <div>
+                                <div className="text-xs text-gray-600 mb-2 font-medium">トレーニング詳細</div>
+                                <div className="space-y-1">
+                                  {post.workout.details && post.workout.details.split('\n').map((detail: string, index: number) => (
+                                    <div key={`${post.id}-detail-${index}`} className="text-xs text-gray-700">{detail}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
 
